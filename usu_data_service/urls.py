@@ -8,6 +8,7 @@ urlpatterns = patterns('',
   url(r'^api/dataservice/showstaticdata/info', views.show_static_data_info),
   url(r'^api/dataservice/myfiles/list', views.show_my_files),
   url(r'^api/dataservice/myfiles/delete/(?P<filename>[^/]+)$', views.delete_my_file),
+  url(r'^api/dataservice/myfiles/upload', views.upload_file),
 )
  
 urlpatterns = format_suffix_patterns(urlpatterns)

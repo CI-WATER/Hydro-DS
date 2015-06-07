@@ -307,6 +307,29 @@ def show_static_data_info(request):
     response_data = {'success': True, 'data': data, 'error': []}
     return Response(data=response_data)
 
+@api_view(['POST'])
+def upload_file(request):
+    if not request.user.is_authenticated():
+        raise NotAuthenticated()
+
+    number_of_files = len(request.FILES)
+
+    if number_of_files == 0:
+        error_msg = {'file': 'No file was found to upload.'}
+        raise DRF_ValidationError(detail=error_msg)
+    elif number_of_files > 1:
+        error_msg = {'file': 'More than one file was found. Only one file can be uploaded at a time.'}
+        raise DRF_ValidationError(detail=error_msg)
+
+    posted_file = request.FILES['file']
+    user_file = UserFile(file=posted_file)
+    user_file.user = request.user
+    user_file.save()
+
+    file_url = _current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+    response_data = {'success': True, 'data': file_url, 'error': []}
+    return Response(data=response_data)
+
 
 @api_view(['GET'])
 def show_my_files(request):
@@ -379,7 +402,7 @@ def _delete_working_uuid_directory(dir_to_delete):
 def _current_site_url():
     """Returns fully qualified URL (no trailing slash) for the current site."""
     #from django.contrib.sites.models import Site
-    current_site = '129.123.41.184'
+    current_site = 'hydro-ds.uwrl.usu.edu'
     protocol = getattr(settings, 'MY_SITE_PROTOCOL', 'http')
     port = getattr(settings, 'MY_SITE_PORT', '20199')
     url = '%s://%s' % (protocol, current_site)
