@@ -24,3 +24,7 @@ NOTE: Detail description of available web services is coming soon.
 - Generate canopy variable specific data in NetCDF format
 - List available data sources
 
+## Other supporting services:
+- Upload a file
+- Delete a file
+- List user files
