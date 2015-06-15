@@ -37,22 +37,40 @@ def rasterToNetCDF(input_raster=None, output_netcdf=None):
     cmdString = "gdal_translate -of netCDF "+input_raster+" "+output_netcdf
     return call_subprocess(cmdString, 'raster to netcdf')
 
+def project_shapefile_UTM_NAD83(input_shape_file, output_shape_file, utm_zone):
+    """ This projection tested for when the source shape file is in WGS84 Geographic
+    coordinate syste (EPSG:4326), but generally gdal/ogr recognizes the input srs
+    """
+    cmdString = "ogr2ogr -t_srs '+proj=utm +zone=" +str(utm_zone)+ " +ellps=GRS80 +datum=NAD83 units=m' "\
+              +output_shape_file+" "+input_shape_file
+    return call_subprocess(cmdString, "Project shapefile")
 
 def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletPointY=None, output_WS_raster=None,
                                        output_Outlet_shpFile=None, utmZone=None, streamThreshold=None):
     """TauDEM doesn't take compressed file; uncompress file
         ToDO:  Check compression first"""
 
-    input_Outlet_shpFile = generate_uuid_file_path()
-    print('shape_file_uuid_path:' + input_Outlet_shpFile)
+    input_Outlet_shpFile_uuid_path = generate_uuid_file_path()
+    print('>>>shape_file_uuid_path:' + input_Outlet_shpFile_uuid_path)
 
-    response_dict = create_OutletShape(shapefilePath=input_Outlet_shpFile, outletPointX=outletPointX, outletPointY=outletPointY)
-    # print(response_dict)
-    # return response_dict
+    print("starting create outlet function")
+    response_dict = create_OutletShape(shapefilePath=input_Outlet_shpFile_uuid_path, outletPointX=outletPointX,
+                                       outletPointY=outletPointY)
+    #print(response_dict)
+    #return response_dict
     if response_dict['success'] == 'False':
         return response_dict
 
-    input_Outlet_shpFile = os.path.join(input_Outlet_shpFile, 'outlet', 'outlet.shp')
+    print('outlet shape file created')
+    input_Outlet_shpFile = os.path.join(input_Outlet_shpFile_uuid_path, 'outlet', 'outlet.shp')
+    input_proj_shape_file = os.path.join(input_Outlet_shpFile_uuid_path, 'outlet', 'outlet-proj.shp')
+
+    response_dict = project_shapefile_UTM_NAD83(input_shape_file=input_Outlet_shpFile, utm_zone=utmZone,
+                                                output_shape_file=input_proj_shape_file)
+    if response_dict['success'] == 'False':
+        return response_dict
+
+    print('outlet shape file projected')
 
     temp_raster = 'temp.tif'
     retDictionary = uncompressRaster(input_DEM_raster, temp_raster)
@@ -90,7 +108,7 @@ def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletP
 
     #move outlets to stream
     cmdString = "moveoutletstostrm -p "+input_raster+"p.tif -src "+input_raster+"src.tif -o "\
-                +input_Outlet_shpFile+ " -om "+output_Outlet_shpFile
+                +input_proj_shape_file+ " -om "+output_Outlet_shpFile
     retDictionary = call_subprocess(cmdString, 'move outlet to stream')
     if retDictionary['success']=="False":
         return retDictionary

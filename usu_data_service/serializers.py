@@ -6,8 +6,25 @@ from rest_framework import serializers
 from usu_data_service.utils import *
 from usu_data_service.servicefunctions.static_data import get_static_data_file_path
 
+class InputRasterURLorStaticRequestValidator(serializers.Serializer):
+    input_raster = serializers.CharField(required=True)
 
-class SubsetDEMRequestValidator(serializers.Serializer):
+    def validate_input_raster(self, value):
+        # check first if it is a valid url file path
+        try:
+            print('1>>>value')
+            validate_url_file_path(value)
+        except ValidationError:
+            # assume this a static file name
+            print('2>>>value')
+            static_file_path = get_static_data_file_path(value)
+            if static_file_path is None:
+                raise serializers.ValidationError("Invalid static data file name:%s" % value)
+
+        return value
+
+
+class SubsetDEMRequestValidator(InputRasterURLorStaticRequestValidator):
     xmin = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     xmax = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     ymin = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
@@ -38,22 +55,7 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
-class InputRasterURLorStaticRequestValidator(serializers.Serializer):
-    input_raster = serializers.CharField(required=True)
 
-    def validate_input_raster(self, value):
-        # check first if it is a valid url file path
-        try:
-            print('1>>>value')
-            validate_url_file_path(value)
-        except ValidationError:
-            # assume this a static file name
-            print('2>>>value')
-            static_file_path = get_static_data_file_path(value)
-            if static_file_path is None:
-                raise serializers.ValidationError("Invalid static data file name:%s" % value)
-
-        return value
 
 class DelineateWatershedRequestValidator(serializers.Serializer):
     outletPointX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
@@ -162,12 +164,23 @@ class ProjectClipRasterRequestValidator(InputRasterURLorStaticRequestValidator):
     output_raster = serializers.CharField(required=False)
     reference_raster = serializers.CharField(required=True)
 
+
 class GetCanopyVariablesRequestValidator(serializers.Serializer):
     in_NLCDraster = serializers.URLField(required=True)
     out_ccNetCDF = serializers.CharField(required=False)
     out_hcanNetCDF = serializers.CharField(required=False)
     out_laiNetCDF = serializers.CharField(required=False)
 
+
+class GetCanopyVariableRequestValidator(serializers.Serializer):
+    in_NLCDraster = serializers.URLField(required=True)
+    output_netcdf = serializers.CharField(required=True)
+    variable_name = serializers.CharField(required=True)
+
+    def validate_variable_name(self, value):
+        if value not in ('cc', 'hcan', 'lai'):
+            raise serializers.ValidationError("Invalid canopy variable name:%s. " % value)
+        return value
 
 class ProjectShapeFileRequestValidator(serializers.Serializer):
     input_shape_file = serializers.URLField(required=True)

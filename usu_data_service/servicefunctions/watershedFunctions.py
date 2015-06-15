@@ -125,13 +125,13 @@ def create_OutletShape(shapefilePath, outletPointX, outletPointY, shape_file_nam
 
     return response_dict
 
-def project_shapefile_UTM_NAD83(input_shape_file, output_shape_file, utm_zone):
-    """ This projection tested for when the source shape file is in WGS84 Geographic
-    coordinate syste (EPSG:4326), but generally gdal/ogr recognizes the input srs
-    """
-    cmdString = "ogr2ogr -t_srs '+proj=utm +zone=" +str(utm_zone)+ " +ellps=GRS80 +datum=NAD83 units=m' "\
-              +output_shape_file+" "+input_shape_file
-    return call_subprocess(cmdString, "Project shapefile")
+# def project_shapefile_UTM_NAD83(input_shape_file, output_shape_file, utm_zone):
+#     """ This projection tested for when the source shape file is in WGS84 Geographic
+#     coordinate syste (EPSG:4326), but generally gdal/ogr recognizes the input srs
+#     """
+#     cmdString = "ogr2ogr -t_srs '+proj=utm +zone=" +str(utm_zone)+ " +ellps=GRS80 +datum=NAD83 units=m' "\
+#               +output_shape_file+" "+input_shape_file
+#     return call_subprocess(cmdString, "Project shapefile")
 
 
 # def delineate_Watershed_TauDEM(bindir, input_DEM_raster, input_Outlet_shpFile, output_WS_raster,

@@ -23,17 +23,17 @@ funcs = {
           'rastersubset':
                 {
                     'function_to_execute': get_raster_subset,
-                    'file_inputs': [{'input_raster': WESTERN_US_DEM}],
+                    'file_inputs': [],  #{'input_raster': WESTERN_US_DEM}
                     'file_outputs': [{'output_raster': 'subset.tif'}],
-                    'user_file_inputs': [],
+                    'user_file_inputs': ['input_raster'],
                     'user_inputs': ['xmin', 'ymax', 'xmax', 'ymin'],
                     'validator': SubsetDEMRequestValidator
                 },
 
           'rastertonetcdf':
                 {
-                   'function_to_execute': rasterToNetCDF,
-                   'file_inputs': [],
+                    'function_to_execute': rasterToNetCDF,
+                    'file_inputs': [],
                     'file_outputs': [{'output_netcdf': 'output.nc'}],
                     'user_inputs': [],
                     'user_file_inputs': ['input_raster'],
@@ -209,6 +209,16 @@ funcs = {
                    'user_inputs': [],
                    'user_file_inputs': ['in_NLCDraster'],
                    'validator': GetCanopyVariablesRequestValidator
+                },
+
+          'getcanopyvariable':
+                {
+                   'function_to_execute': get_canopy_variable,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'canopy.nc'}],
+                   'user_inputs': ['variable_name'],
+                   'user_file_inputs': ['in_NLCDraster'],
+                   'validator': GetCanopyVariableRequestValidator
                 },
 
          }

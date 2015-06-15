@@ -141,6 +141,83 @@ def get_canopy_variables(in_NLCDraster, out_ccNetCDF, out_hcanNetCDF, out_laiNet
     response_dict = {'success': 'True', 'message': 'Generated netCDF files with data for canopy variables'}
     return response_dict
 
+def get_canopy_variable(in_NLCDraster, output_netcdf, variable_name):
+
+    if variable_name not in ('cc', 'hcan', 'lai'):
+        response_dict = {'success': 'False', 'message': 'Invalid canopy variable name:%s' % variable_name}
+        return response_dict
+
+    srs_data = gdal.Open(in_NLCDraster, GA_ReadOnly)
+    srs_proj = srs_data.GetProjection()
+    srs_geotrans = srs_data.GetGeoTransform()
+    Ncols = srs_data.RasterXSize
+    Nrows = srs_data.RasterYSize
+    in_band1 = srs_data.GetRasterBand(1)
+    tempArray = in_band1.ReadAsArray()
+    #formats 'GTiff' 'NetCDF', ..
+    out_data = gdal.GetDriverByName('NetCDF').Create(output_netcdf, Ncols, Nrows, 1, GDT_Float32)
+    out_data.SetGeoTransform(srs_geotrans)
+    out_data.SetProjection(srs_proj)
+    # out_data2 = gdal.GetDriverByName('NetCDF').Create(out_hcanNetCDF, Ncols, Nrows, 1, GDT_Float32)
+    # out_data2.SetGeoTransform(srs_geotrans)
+    # out_data2.SetProjection(srs_proj)
+    # out_data3 = gdal.GetDriverByName('NetCDF').Create(out_laiNetCDF, Ncols, Nrows, 1, GDT_Float32)
+    # out_data3.SetGeoTransform(srs_geotrans)
+    # out_data3.SetProjection(srs_proj)
+
+    outArray = numpy.array([([0.0]* len(tempArray[0])) for i in range(len(tempArray))])
+    # outArray2 = numpy.array([([0.0]* len(tempArray[0])) for i in range(len(tempArray))])
+    # outArray3 = numpy.array([([0.0]* len(tempArray[0])) for i in range(len(tempArray))])
+    #outArray[tempArray!=41 and tempArray!=42 and tempArray !=43 and tempArray !=52 and tempArray != 90] = 0
+    #-> The following is bit slow; need to find a way to change values at specific index locations
+    for i in range(len(tempArray)):
+        for j in range(len(tempArray[i])):
+            val = tempArray[i][j]
+            if val == 41 or val == 90:
+                if variable_name == 'cc':
+                    outArray[i][j] = 0.5
+                elif variable_name == 'hcan':
+                    outArray[i][j] = 8.0
+                else:
+                    outArray[i][j] = 1.0
+            elif val == 42:
+                if variable_name == 'cc':
+                    outArray[i][j] = 0.7
+                elif variable_name == 'hcan':
+                    outArray[i][j] = 15.0
+                else:
+                    outArray[i][j] = 4.5
+            elif val == 43:
+                if variable_name == 'cc':
+                    outArray[i][j] = 0.8
+                elif variable_name == 'hcan':
+                    outArray[i][j] = 10.0
+                else:
+                    outArray[i][j] = 4.0
+            elif val == 52:
+                if variable_name == 'cc':
+                    outArray[i][j] = 0.5
+                elif variable_name == 'hcan':
+                    outArray[i][j] = 3.0
+                else:
+                    outArray[i][j] = 1.0
+            else:
+                outArray[i][j] = 0.0
+                # outArray2[i][j] = 0.0
+                # outArray3[i][j] = 0.0
+
+    out_band = out_data.GetRasterBand(1)
+    out_band.WriteArray(outArray)
+    out_band.FlushCache()
+    # out_band2 = out_data2.GetRasterBand(1)
+    # out_band2.WriteArray(outArray2)
+    # out_band2.FlushCache()
+    # out_band3 = out_data3.GetRasterBand(1)
+    # out_band3.WriteArray(outArray3)
+    # out_band3.FlushCache()
+
+    response_dict = {'success': 'True', 'message': 'Generated netCDF files with data for canopy variable:%s' % variable_name}
+    return response_dict
 
 def getCanopyLAI(input_NLCDF_raster, input_watershed_raster, output_lai_netcdf):
     pass
