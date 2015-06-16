@@ -578,13 +578,21 @@ def concatenate_netCDF(input_netcdf1, input_netcdf2, output_netcdf):
     cmdString = "ncks --mk_rec_dmn time "+input_netcdf1+" tempNetCDF1.nc"
     callSubprocess(cmdString, "intermediate netcdf with record dimension")
     cmdString = "ncks --mk_rec_dmn time "+input_netcdf2+" tempNetCDF2.nc"
-    callSubprocess(cmdString, "intermediate netcdf with record dimension")
+    subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
     #
     cmdString = "ncrcat -4 tempNetCDF1.nc tempNetCDF2.nc "+output_netcdf
-    callSubprocess(cmdString, "concatenate netcdf files")
+    subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
+
     #delete intermediate files
     os.remove('tempNetCDF1.nc')
     os.remove('tempNetCDF2.nc')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
+
+    subprocess_response_dict['message'] = "concatenate of netcdf files was successful"
+    return subprocess_response_dict
 
 #This combines (stitches) (spatially adjacent) netcdf files accross the spatial/horizontal dimensions
 def combineNetCDFs(input_netcdf1, input_netcdf2, output_netcdf):

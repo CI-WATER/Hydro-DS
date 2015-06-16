@@ -156,6 +156,12 @@ class ResampleNetCDFRequestValidator(InputNetCDFURLRequestValidator):
     variable_name = serializers.CharField(required=True)
 
 
+class ConcatenateNetCDFRequestValidator(serializers.Serializer):
+    input_netcdf1 = serializers.URLField(required=True)
+    input_netcdf2 = serializers.URLField(required=True)
+    output_netcdf = serializers.CharField(required=False)
+
+
 class ProjectSubsetResampleNetCDFRequestValidator(ResampleNetCDFRequestValidator):
     pass
 

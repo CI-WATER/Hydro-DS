@@ -21,6 +21,7 @@ NOTE: Detail description of available web services is coming soon.
 - Resampele NetCDF to reference NetCDF
 - Reverse NetCDF Y-axis
 - Project, subset and resample NetCDF
+- Concatenate NetCDF files
 - Generate canopy variable specific data in NetCDF format
 - List available data sources
 

@@ -180,6 +180,16 @@ funcs = {
                    'validator': ResampleNetCDFRequestValidator
                 },
 
+          'concatenatenetcdf':
+                {
+                   'function_to_execute': concatenate_netCDF,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'concatenated.nc'}],
+                   'user_inputs': [],
+                   'user_file_inputs': ['input_netcdf1', 'input_netcdf2'],
+                   'validator': ConcatenateNetCDFRequestValidator
+                },
+
           'projectsubsetresamplenetcdftoreferencenetcdf':
                 {
                    'function_to_execute': project_subset_and_resample_netcdf_to_reference_netcdf,
