@@ -141,6 +141,26 @@ funcs = {
                    'validator': ResampleRasterRequestValidator
                 },
 
+          'projectresamplerasterutm':
+                {
+                   'function_to_execute': project_and_resample_Raster_UTM_NAD83,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_raster': 'projected_resampled.tif'}],
+                   'user_inputs': ['utm_zone', 'dx', 'dy', 'resample'],
+                   'user_file_inputs': ['input_raster'],
+                   'validator': ProjectResampleRasterUTMRequestValidator
+                },
+
+          'projectresamplerasterepsg':
+                {
+                   'function_to_execute': project_and_resample_Raster_EPSG,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_raster': 'projected_resampled.tif'}],
+                   'user_inputs': ['epsg_code', 'dx', 'dy', 'resample'],
+                   'user_file_inputs': ['input_raster'],
+                   'validator': ProjectResampleRasterEPSGRequestValidator
+                },
+
           'subsetrastertoreference':
                 {
                    'function_to_execute': subset_raster_to_referenceRaster,

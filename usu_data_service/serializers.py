@@ -127,8 +127,20 @@ class ResampleRasterRequestValidator(InputRasterRequestValidator):
     dx = serializers.IntegerField(required=True)
     dy = serializers.IntegerField(required=True)
     # TODO: may be this should be a choice type field
-    resample = serializers.CharField(min_length=1, default='near')
+    resample = serializers.CharField(min_length=1, required=False, default='near')
     output_raster = serializers.CharField(required=False)
+
+
+class ProjectResampleRasterRequestValidator(ResampleRasterRequestValidator):
+    pass
+
+
+class ProjectResampleRasterUTMRequestValidator(ProjectResampleRasterRequestValidator):
+    utm_zone = serializers.IntegerField(required=True)
+
+
+class ProjectResampleRasterEPSGRequestValidator(ProjectResampleRasterRequestValidator):
+    epsg_code = serializers.IntegerField(required=True)
 
 
 class SubsetRasterToReferenceRequestValidator(InputRasterRequestValidator):

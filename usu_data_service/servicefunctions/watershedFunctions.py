@@ -31,6 +31,41 @@ def project_raster_UTM_NAD83(input_raster, output_raster, utmZone):
     return call_subprocess(cmdString, "project raster")
 
 
+def project_and_resample_Raster_UTM_NAD83(input_raster, output_raster,  dx, dy, utm_zone, resample='near'):
+    """
+    This function projects and re-grids a raster
+    parameters are:
+        dx, dy are user selected resolution
+        utm_zone: UTM zone to be used for projection
+        resample is regridding/interpolation method
+        For images leave the default nearest neighbor interpolation;
+        else pass the method required, e.g 'bilinear'
+    """
+    #Project utm
+    cmdString = "gdalwarp -t_srs '+proj=utm +zone=" +str(utm_zone)+ " +datum=NAD83' -tr "\
+                +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite "+input_raster+" "+output_raster
+    return call_subprocess(cmdString, "project and re-grid Raster")
+    #Delete temp file
+    #os.remove("tempRaster.tif")
+
+#to get epsgCode, projection code using the EPSG (get list from http://spatialreference.org/ref/epsg/)
+def project_and_resample_Raster_EPSG(input_raster, output_raster,  dx, dy, epsg_code, resample='near'):
+    """
+    This function projects and re-grids a raster
+    parameters are:
+        dx, dy are user selected resolution
+        epsg_code: projection code using the EPSG (get list from http://spatialreference.org/ref/epsg/)
+        resample is regridding/interpolation method
+        For images leave the default nearest neighbor interpolation;
+        else pass the method required, e.g 'bilinear'
+    """
+    #Project epsg
+    cmdString = "gdalwarp -t_srs EPSG:"+str(epsg_code)+" -tr "\
+                +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite "+input_raster+" "+output_raster
+    return call_subprocess(cmdString, "project and re-grid Raster")
+    #Delete temp file
+    #os.remove("tempRaster.tif")
+
 def create_OutletShape_Wrapper(outletPointX, outletPointY, output_shape_file_name):
     """ This function expects the service to pass a file path that has the guid
     temp folder for the shape_file_name parameter
