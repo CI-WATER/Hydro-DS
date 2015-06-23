@@ -31,6 +31,26 @@ funcs = {
                     'validator': SubsetDEMRequestValidator
                 },
 
+          'subsetprojectresamplerasterutm':
+                {
+                    'function_to_execute': subset_project_and_resample_Raster_UTM_NAD83,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_raster': 'subset_proj_resample.tif'}],
+                    'user_file_inputs': ['input_raster'],
+                    'user_inputs': ['xmin', 'ymax', 'xmax', 'ymin', 'dx', 'dy', 'resample'],
+                    'validator': SubsetProjectResampleRasterRequestValidator
+                },
+
+          'subsetprojectresamplerasterepsg':
+                {
+                    'function_to_execute': subset_project_and_resample_Raster_EPSG,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_raster': 'subset_proj_resample.tif'}],
+                    'user_file_inputs': ['input_raster'],
+                    'user_inputs': ['xmin', 'ymax', 'xmax', 'ymin', 'dx', 'dy', 'resample', 'epsg_code'],
+                    'validator': SubsetProjectResampleRasterEPSGRequestValidator
+                },
+
           'rastertonetcdf':
                 {
                     'function_to_execute': rasterToNetCDF,

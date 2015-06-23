@@ -31,6 +31,17 @@ class SubsetDEMRequestValidator(InputRasterURLorStaticRequestValidator):
     ymax = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     output_raster = serializers.CharField(required=False)
 
+
+class SubsetProjectResampleRasterRequestValidator(SubsetDEMRequestValidator):
+    resample = serializers.CharField(min_length=1, required=False, default='near')
+    dx = serializers.IntegerField(required=True)
+    dy = serializers.IntegerField(required=True)
+
+
+class SubsetProjectResampleRasterEPSGRequestValidator(SubsetProjectResampleRasterRequestValidator):
+    epsg_code = serializers.IntegerField(required=True)
+
+
 class InputRasterRequestValidator(serializers.Serializer):
     input_raster = serializers.URLField(required=True)
 

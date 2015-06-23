@@ -66,6 +66,76 @@ def project_and_resample_Raster_EPSG(input_raster, output_raster,  dx, dy, epsg_
     #Delete temp file
     #os.remove("tempRaster.tif")
 
+
+def subset_project_and_resample_Raster_UTM_NAD83(input_raster, output_raster, xmin, ymax, xmax, ymin,  dx, dy,
+                                                 resample='near'):
+    """
+    This function subsets, projects and re-grids a raster
+    parameters are:
+        (xmin, ymax, xmax, ymin): boundary extents
+        in decimal degrees with Datum NAD83
+        input_raster is in Geographic CS with datum NAD83
+        dx, dy are user selected resolution
+        resample is regridding/interpolation method
+        For images leave the default nearest neighbor interpolation;
+        else pass the method required, e.g 'bilinear'
+    """
+    cmdString = "gdal_translate"+" "+"-projwin"+" "+str(xmin)+" "+str(ymax)+" "\
+               +str(xmax)+" "+str(ymin)+" "+input_raster+" tempRaster.tif"
+    retDictionary = call_subprocess(cmdString, "subset raster")
+    if retDictionary['success'] == "False":
+        return retDictionary
+
+    # need to breakup the equation for calculating utm zone as the single equation throwing exception
+    sumv = (xmin + xmax)/2
+    divv = (180 + sumv)/6
+    utmZone = divv + 1
+    utmZone = int(utmZone)
+
+    # try:
+    #     utmZone = int((180 + 0.5*(xmin+xmax))/6) + 1
+    # except:
+    #     #print("type_error:" + ex.message)
+    #     print(">>>>type_error:" + sys.exc_info()[0])
+    #     pass
+
+    #Project utm
+    cmdString = "gdalwarp -t_srs '+proj=utm +zone=" +str(utmZone)+ " +datum=NAD83' -tr "\
+                +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite tempRaster.tif "+output_raster
+    retDictionary = call_subprocess(cmdString, "project and re-grid DEM")
+    print(">>>gdawrap done ..")
+    #Delete temp file
+    #os.remove("tempRaster.tif")
+    return retDictionary
+
+
+def subset_project_and_resample_Raster_EPSG(input_raster, output_raster, xmin, ymax, xmax, ymin,  dx, dy, epsg_code,
+                                            resample='near'):
+    """
+    This function subsets, projects and re-grids a raster
+    parameters are:
+        (xmin, ymax, xmax, ymin): boundary extents
+        in decimal degrees with Datum NAD83
+        input_raster is in Geographic CS with datum NAD83
+        dx, dy are user selected resolution
+        resample is regridding/interpolation method
+        For images leave the default nearest neighbor interpolation;
+        else pass the method required, e.g 'bilinear'
+    """
+    cmdString = "gdal_translate"+" "+"-projwin"+" "+str(xmin)+" "+str(ymax)+" "\
+               +str(xmax)+" "+str(ymin)+" "+input_raster+" tempRaster.tif"
+    retDictionary = call_subprocess(cmdString, "subset raster")
+    if retDictionary['success'] == "False":
+        return retDictionary
+
+    cmdString = "gdalwarp -t_srs EPSG:"+str(epsg_code)+ " -tr "\
+                +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite tempRaster.tif "+output_raster
+    retDictionary = call_subprocess(cmdString, "project and re-grid DEM")
+    #Delete temp file
+    #os.remove("tempRaster.tif")
+    return retDictionary
+
+
 def create_OutletShape_Wrapper(outletPointX, outletPointY, output_shape_file_name):
     """ This function expects the service to pass a file path that has the guid
     temp folder for the shape_file_name parameter
@@ -238,28 +308,28 @@ def resample_Raster(input_raster, output_raster, dx, dy, resample='near'):
     #Delete temp file
 
 
-def subset_project_and_resample_Raster(input_raster, output_raster, xmin, ymax, xmax, ymin,  dx, dy, resample='near'):
-    """
-    This function subsets, projects and re-grids a raster
-    parameters are:
-        (xmin, ymax, xmax, ymin): boundary extents
-        in decimal degrees with Datum NAD83
-        input_raster is in Geographic CS with datum NAD83
-        dx, dy are user selected resolution
-        resample is regridding/interpolation method
-        For images leave the default nearest neighbor interpolation;
-        else pass the method required, e.g 'bilinear'
-    """
-    cmdString = "gdal_translate"+" "+"-projwin"+" "+str(xmin)+" "+str(ymax)+" "\
-               +str(xmax)+" "+str(ymin)+" "+input_raster+" tempRaster.tif"
-    call_subprocess(cmdString, "subset raster")
-    utmZone = int((180 + 0.5*(xmin+xmax))/6) + 1
-    #Project utm
-    cmdString = "gdalwarp -t_srs '+proj=utm +zone=" +str(utmZone)+ " +datum=NAD83' -tr "\
-                +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite tempRaster.tif "+output_raster
-    call_subprocess(cmdString, "project and re-grid DEM")
-    #Delete temp file
-    os.remove("tempRaster.tif")
+# def subset_project_and_resample_Raster(input_raster, output_raster, xmin, ymax, xmax, ymin,  dx, dy, resample='near'):
+#     """
+#     This function subsets, projects and re-grids a raster
+#     parameters are:
+#         (xmin, ymax, xmax, ymin): boundary extents
+#         in decimal degrees with Datum NAD83
+#         input_raster is in Geographic CS with datum NAD83
+#         dx, dy are user selected resolution
+#         resample is regridding/interpolation method
+#         For images leave the default nearest neighbor interpolation;
+#         else pass the method required, e.g 'bilinear'
+#     """
+#     cmdString = "gdal_translate"+" "+"-projwin"+" "+str(xmin)+" "+str(ymax)+" "\
+#                +str(xmax)+" "+str(ymin)+" "+input_raster+" tempRaster.tif"
+#     call_subprocess(cmdString, "subset raster")
+#     utmZone = int((180 + 0.5*(xmin+xmax))/6) + 1
+#     #Project utm
+#     cmdString = "gdalwarp -t_srs '+proj=utm +zone=" +str(utmZone)+ " +datum=NAD83' -tr "\
+#                 +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite tempRaster.tif "+output_raster
+#     call_subprocess(cmdString, "project and re-grid DEM")
+#     #Delete temp file
+#     os.remove("tempRaster.tif")
 
 
 def download_USGSNED_subset_resample_and_Project(output_dir, output_raster, xmin, ymax, xmax, ymin, dx, dy, resample='near'):

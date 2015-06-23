@@ -274,6 +274,7 @@ def reverse_netCDF_yaxis(input_netcdf, output_netcdf):    # resample='near'):
     Ncols = ref_data.RasterXSize
     Nrows = ref_data.RasterYSize
     inband = ref_data.GetRasterBand(1)
+    nodata = inband.GetNoDataValue()
     array = inband.ReadAsArray()
     dType = inband.DataType
 
@@ -285,6 +286,7 @@ def reverse_netCDF_yaxis(input_netcdf, output_netcdf):    # resample='near'):
     out_data.SetProjection(ref_proj)
     outband = out_data.GetRasterBand(1)
     array_rev = array[::-1]
+    outband.SetNoDataValue(nodata)
     outband.WriteArray(array_rev)
     outband.FlushCache()
     ref_data = None
