@@ -1,6 +1,5 @@
-from django.core.files import File
+import logging
 
-from rest_framework import permissions
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -18,6 +17,8 @@ from usu_data_service.utils import *
 from usu_data_service.local_settings import *
 
 WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.tif')
+
+logger = logging.getLogger(__name__)
 
 funcs = {
           'rastersubset':
@@ -44,10 +45,20 @@ funcs = {
                 {
                     'function_to_execute': delineate_Watershed_TauDEM,
                     'file_inputs': [],
-                    'file_outputs': [{'output_WS_raster': 'watershed.tif'}, {'output_Outlet_shpFile': 'moveout.shp'}],
+                    'file_outputs': [{'output_raster': 'watershed.tif'}, {'output_outlet_shapefile': 'moveout.shp'}],
                     'user_inputs': ['utmZone', 'streamThreshold', 'outletPointX', 'outletPointY'],
                     'user_file_inputs': ['input_DEM_raster'],
                     'validator': DelineateWatershedRequestValidator
+                },
+
+          'delineatewatershedatshapefile':
+                {
+                    'function_to_execute': delineate_Watershed_atShapeFile,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_raster': 'watershed.tif'}, {'output_outlet_shapefile': 'moveout.shp'}],
+                    'user_inputs': ['epsgCode', 'streamThreshold'],
+                    'user_file_inputs': ['input_DEM_raster', 'input_outlet_shapefile'],
+                    'validator': DelineateWatershedAtShapeFileRequestValidator
                 },
 
           'createoutletshapefile':
@@ -60,14 +71,24 @@ funcs = {
                     'validator': CreateOutletShapeRequestValidator
                 },
 
-          'projectshapefile':
+          'projectshapefileutm':
                {
                     'function_to_execute': project_shapefile_UTM_NAD83,
                     'file_inputs': [],
                     'file_outputs': [{'output_shape_file': 'shape_proj.shp'}],
                     'user_inputs': ['utm_zone'],
                     'user_file_inputs': ['input_shape_file'],
-                    'validator': ProjectShapeFileRequestValidator
+                    'validator': ProjectShapeFileUTMRequestValidator
+               },
+
+          'projectshapefileepsg':
+               {
+                    'function_to_execute': project_shapefile_EPSG,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_shape_file': 'shape_proj.shp'}],
+                    'user_inputs': ['epsg_code'],
+                    'user_file_inputs': ['input_shape_file'],
+                    'validator': ProjectShapeFileEPSGRequestValidator
                },
 
           'computerasteraspect':
@@ -256,7 +277,7 @@ class RunService(APIView):
         params = funcs.get(func, None)
 
         if not params:
-            return Response({'failure': True, 'message': 'No such function {} is supported.'.format(func)})
+            return Response({'success': False, 'error': 'No such function {} is supported.'.format(func)})
 
         validator = params['validator']
 
@@ -316,7 +337,7 @@ class RunService(APIView):
         else:
             response_data = {'success': False, 'data': data, 'error': result['message']}
 
-        _delete_working_uuid_directory(uuid_file_path)
+        delete_working_uuid_directory(uuid_file_path)
 
         return Response(data=response_data)
 
@@ -325,6 +346,7 @@ class RunService(APIView):
 def show_static_data_info(request):
     data = get_static_data_files_info()
     response_data = {'success': True, 'data': data, 'error': []}
+    logger.debug("show static data")
     return Response(data=response_data)
 
 @api_view(['POST'])
@@ -346,7 +368,7 @@ def upload_file(request):
     user_file.user = request.user
     user_file.save()
 
-    file_url = _current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+    file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
     response_data = {'success': True, 'data': file_url, 'error': []}
     return Response(data=response_data)
 
@@ -358,10 +380,11 @@ def show_my_files(request):
 
     user_files = []
     for user_file in UserFile.objects.filter(user=request.user).all():
-        user_file_url = _current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+        user_file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
         user_files.append(user_file_url)
 
     response_data = {'success': True, 'data': user_files, 'error': []}
+
     return Response(data=response_data)
 
 
@@ -381,6 +404,24 @@ def delete_my_file(request, filename):
 
     response_data = {'success': True, 'data': filename, 'error': []}
     return Response(data=response_data)
+
+
+@api_view(['GET'])
+def zip_my_files(request):
+    if not request.user.is_authenticated():
+        raise NotAuthenticated()
+
+    request_validator = ZipMyFilesRequestValidator(data=request.query_params)
+    if not request_validator.is_valid():
+        raise DRF_ValidationError(detail=request_validator.errors)
+
+    files_to_zip = request_validator.validated_data['file_names']
+    zip_file_name = request_validator.validated_data['zip_file_name']
+    zip_file_url = zip_user_files(user=request.user, file_name_list=files_to_zip, zip_file_name=zip_file_name)
+
+    response_data = {'success': True, 'data': {'zip_file_name': zip_file_url}, 'error': []}
+    return Response(data=response_data)
+
 
 def _save_output_files_in_django(output_files, user=None):
     output_files_in_django = {}
@@ -402,32 +443,9 @@ def _save_output_files_in_django(output_files, user=None):
             user_file.user = user
 
         user_file.save()
-        output_files_in_django[key] = _current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+        output_files_in_django[key] = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
         print ('file url:' + user_file.file.url)
     return output_files_in_django
 
-
-def _delete_working_uuid_directory(dir_to_delete):
-    import usu_data_service
-    usu_data_service_root_path = os.path.dirname(usu_data_service.__file__)
-    data_service_working_directory = os.path.join(usu_data_service_root_path, 'workspace')
-    # make sure we are deleting the uid folder under the path "/...../workspace/"
-    if dir_to_delete.startswith(data_service_working_directory):
-        if not dir_to_delete.endswith(data_service_working_directory):
-            shutil.rmtree(dir_to_delete)
-
-    print ('cleanup working dir name:' + dir_to_delete)
-
-
-def _current_site_url():
-    """Returns fully qualified URL (no trailing slash) for the current site."""
-    #from django.contrib.sites.models import Site
-    current_site = 'hydro-ds.uwrl.usu.edu'
-    protocol = getattr(settings, 'MY_SITE_PROTOCOL', 'http')
-    port = getattr(settings, 'MY_SITE_PORT', '20199')
-    url = '%s://%s' % (protocol, current_site)
-    if port:
-        url += ':%s' % port
-    return url
 
 

@@ -6,9 +6,11 @@ import shutil
 import glob
 import zipfile
 
+from django.core.files import File
 from django.core.validators import URLValidator
 
 from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError as DRF_ValidationError
 
 from ciwater import settings
 from usu_data_service.models import UserFile
@@ -41,6 +43,60 @@ def copy_input_file_to_uuid_working_directory(uuid_path, file_url_path):
         destination_file_path = os.path.join(uuid_path, file_name)
         shutil.copyfile(source_file_path, destination_file_path)
         return destination_file_path
+
+
+def zip_user_files(user, file_name_list, zip_file_name):
+
+    if not zip_file_name.endswith('.zip'):
+        raise DRF_ValidationError(detail={'zip_file_name': "{file_name} is not a valid zip "
+                                                           "file name.".format(zip_file_name)})
+
+    # create temp UUID directory and copy the selected files there for zipping
+    uuid_file_path = generate_uuid_file_path()
+    print("uuid_file_path:" + uuid_file_path)
+    user_folder = 'user_%s' % user.id
+    # check the listed files to be zipped exists
+    print("checking file name")
+    for file_name in file_name_list:
+        source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
+        if not os.path.isfile(source_file_path):
+            raise DRF_ValidationError(detail={'file_name_list': "{file_name} was not found.".format(file_name)})
+
+    for file_name in file_name_list:
+        print("copying files to uuid file path")
+        source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
+        destination_file_path = os.path.join(uuid_file_path, file_name)
+        shutil.copyfile(source_file_path, destination_file_path)
+
+    file_matching_pattern = '*.*'
+    files_to_look_for = os.path.join(uuid_file_path, file_matching_pattern)
+    zip_target_path = os.path.join(uuid_file_path, 'zip')
+    os.makedirs(zip_target_path)
+    zip_file = os.path.join(zip_target_path, zip_file_name)
+    zf = zipfile.ZipFile(zip_file, 'w')
+    for each_file in glob.glob(files_to_look_for):
+        print("zipping files")
+        zf.write(each_file, os.path.relpath(each_file, uuid_file_path))
+
+    zf.close()
+
+    # if the zip file already exists, delete it first
+    delete_user_file(user, zip_file_name)
+
+    print("saving zip file to django")
+    # save zip file in django
+    user_file = UserFile(file=File(open(zip_file, 'rb')))
+    user_file.user = user
+    user_file.save()
+
+    # delete uuid temp working directory
+    delete_working_uuid_directory(uuid_file_path)
+
+    print("creating zip file url")
+    # return zip file url
+    zip_file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+    print("zip_file_url:" + zip_file_url)
+    return zip_file_url
 
 
 def unzip_shape_file(shape_zip_file):
@@ -110,3 +166,47 @@ def delete_user_file(user, filename):
             user_file.delete()
             print('>>> file_deleted:' + filename)
             break
+
+
+def current_site_url():
+    """Returns fully qualified URL (no trailing slash) for the current site."""
+    #from django.contrib.sites.models import Site
+    current_site = 'hydro-ds.uwrl.usu.edu'
+    protocol = getattr(settings, 'MY_SITE_PROTOCOL', 'http')
+    port = getattr(settings, 'MY_SITE_PORT', '20199')
+    url = '%s://%s' % (protocol, current_site)
+    if port:
+        url += ':%s' % port
+    return url
+
+
+def validate_file_name(file_name):
+        try:
+            name_part, ext_part = os.path.splitext(file_name)
+            if len(name_part) == 0 or len(ext_part) < 2:
+                return False
+
+            ext_part = ext_part[1:]
+            for c in ext_part:
+                if not c.isalpha():
+                    return False
+            if not name_part[0].isalpha():
+                return False
+            for c in name_part[1:]:
+                if not c.isalnum() and c not in ['-', '_']:
+                    return False
+        except:
+            return False
+        return True
+
+
+def delete_working_uuid_directory(dir_to_delete):
+    import usu_data_service
+    usu_data_service_root_path = os.path.dirname(usu_data_service.__file__)
+    data_service_working_directory = os.path.join(usu_data_service_root_path, 'workspace')
+    # make sure we are deleting the uid folder under the path "/...../workspace/"
+    if dir_to_delete.startswith(data_service_working_directory):
+        if not dir_to_delete.endswith(data_service_working_directory):
+            shutil.rmtree(dir_to_delete)
+
+    print ('cleanup working dir name:' + dir_to_delete)

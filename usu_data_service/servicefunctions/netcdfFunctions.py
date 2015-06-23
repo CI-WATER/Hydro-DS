@@ -321,22 +321,21 @@ def resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable
     #Add dummy dimensions and variables
 
     #temp_netcdf = "temp"+output_netcdf
-    temp_netcdf_1 = os.path.join(os.path.dirname(output_netcdf), 'temp_1.nc')
+    temp_netcdf_2 = os.path.join(os.path.dirname(output_netcdf), 'temp_1.nc')
 
     cmdString = "ncrename -v x,x_2 -v y,y_2 -v "+variable_name+","+variable_name+"_2 "+\
-                 input_netcdf+" "+temp_netcdf_1
+                 input_netcdf+" "+temp_netcdf_2
 
     subprocess_response_dict = call_subprocess(cmdString, 'copy netcdf with rename old dimensions')
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
 
-    temp_netcdf_2 = os.path.join(os.path.dirname(output_netcdf), 'temp_2.nc')
-    cmdString = "ncrename -d x,x_2 -d y,y_2 " + temp_netcdf_1+" "+temp_netcdf_2
-
-    subprocess_response_dict = call_subprocess(cmdString, 'copy netcdf with rename old dimensions')
-    if subprocess_response_dict['success'] == 'False':
-        return subprocess_response_dict
-
+    # temp_netcdf_2 = os.path.join(os.path.dirname(output_netcdf), 'temp_2.nc')
+    # cmdString = "ncrename -d x,x_2 -d y,y_2 " + temp_netcdf_1+" "+temp_netcdf_2
+    #
+    # subprocess_response_dict = call_subprocess(cmdString, 'copy netcdf with rename old dimensions')
+    # if subprocess_response_dict['success'] == 'False':
+    #     return subprocess_response_dict
 
     ncRef = netCDF4.Dataset(reference_netcdf,"r") # format='NETCDF4')
     xout = ncRef.variables['x'][:]
@@ -385,28 +384,39 @@ def resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
 
+    #print("starting loop")
     #re-open file to write re-gridded data
-    ncOut = netCDF4.Dataset(output_netcdf,"r+") #, format='NETCDF4')
-    varin = numpy.zeros((len(yin),len(xin)),dtype=vardataType)
-    varout = numpy.zeros((len(yout),len(xout)),dtype=vardataType)
-    timeLen = len(ncIn.dimensions['time'])
-    yLen = len(yout)
-    xLen = len(xout)
-    for tk in range(timeLen):
-        varin[:,:] = ncIn.variables[variable_name][tk,:,:]
-        for yi in range(yLen):
-            y1 = int(numpy.floor(abs(yout[yi]-yin[0])/dy))    # abs to make sure
-            y2 = y1+1
-            for xj in range(xLen):
-                x1 = int(numpy.floor(abs(xout[xj]-xin[0])/dx))
-                x2 =x1+1
-                points = [(yin[y1],xin[x1],varin[y1,x1]),(yin[y1],xin[x2],varin[y1,x2]),(yin[y2],xin[x2],varin[y2,x2]),
-                          (yin[y2],xin[x1],varin[y2,x1])]
-                varout[yi,xj] = bilinear_interpolation(yout[yi],xout[xj],points)
-        ncOut.variables[variable_name][tk,:,:] = varout[:,:]
-    ncIn.close()
-    ncOut.close()
+    try:
+        ncOut = netCDF4.Dataset(output_netcdf,"r+") #, format='NETCDF4')
+        varin = numpy.zeros((len(yin),len(xin)),dtype=vardataType)
+        varout = numpy.zeros((len(yout),len(xout)),dtype=vardataType)
+        timeLen = len(ncIn.dimensions['time'])
+        yLen = len(yout)
+        xLen = len(xout)
+        #print("entering for time loop")
+        for tk in range(timeLen):
+            varin[:,:] = ncIn.variables[variable_name][tk,:,:]
+            #print(">>entering for y loop")
+            for yi in range(yLen):
+                y1 = int(numpy.floor(abs(yout[yi]-yin[0])/dy))    # abs to make sure
+                y2 = y1+1
+                #print(">>entering for X loop:" + )
+                for xj in range(xLen):
+                    x1 = int(numpy.floor(abs(xout[xj]-xin[0])/dx))
+                    x2 =x1+1
+                    points = [(yin[y1],xin[x1],varin[y1,x1]),(yin[y1],xin[x2],varin[y1,x2]),(yin[y2],xin[x2],varin[y2,x2]),
+                              (yin[y2],xin[x1],varin[y2,x1])]
+                    varout[yi,xj] = bilinear_interpolation_with_points_outside_Rectangle(yout[yi], xout[xj], points)
+            ncOut.variables[variable_name][tk,:,:] = varout[:,:]
+        ncIn.close()
+        ncOut.close()
+    except:
+        #print("Error")
+        subprocess_response_dict['success'] = 'False'
+        subprocess_response_dict['message'] = 'error in resampling netcdf file'
+        return subprocess_response_dict
 
+    #print("Loop ended")
     subprocess_response_dict['message'] = "resample of netcdf was successful"
     return subprocess_response_dict
 

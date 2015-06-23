@@ -13,7 +13,8 @@ def call_subprocess(cmdString=None, debugString=None):
     if (retValue==0):
         # debFile.write('%s Successful\n' % debugString)
         # debFile.close()
-        retDictionary = {'success': "True", 'message': "return value from the application is: "+str(retValue)}
+        retDictionary = {'success': "True", 'message': debugString + ". Return value from the application is: "
+                                                       +str(retValue)}
     else:
         # debFile.write('There was error in %s\n' % debugString)
         # debFile.close()
@@ -24,3 +25,4 @@ def call_subprocess(cmdString=None, debugString=None):
     print('\n')
     print('call_subprocess retValue:' + str(retValue))
     return retDictionary
+

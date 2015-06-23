@@ -55,17 +55,40 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
-
-
 class DelineateWatershedRequestValidator(serializers.Serializer):
     outletPointX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     outletPointY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     utmZone = serializers.IntegerField(required=True)
     streamThreshold = serializers.IntegerField(required=True)
     input_DEM_raster = serializers.URLField(required=True)
-    output_WS_raster = serializers.CharField(required=False)
-    output_Outlet_shpFile = serializers.CharField(required=False)
+    output_raster = serializers.CharField(required=True)
+    output_outlet_shapefile = serializers.CharField(required=True)
 
+
+class DelineateWatershedAtShapeFileRequestValidator(serializers.Serializer):
+    epsgCode = serializers.IntegerField(required=True)
+    streamThreshold = serializers.IntegerField(required=True)
+    input_DEM_raster = serializers.URLField(required=True)
+    input_outlet_shapefile = serializers.URLField(required=True)
+    output_raster = serializers.CharField(required=True)
+    output_outlet_shapefile = serializers.CharField(required=True)
+
+    def validate_input_outlet_shapefile(self, value):
+        try:
+            validate_url_file_path(value)
+        except NotFound:
+            raise serializers.ValidationError("Invalid input outlet shapefile:%s" % value)
+
+        if not value.endswith('.zip'):
+            raise serializers.ValidationError("Invalid input outlet shapefile. Shapefile needs to be a zip file:%s" % value)
+
+        return value
+
+    def validate_output_outlet_shapefile(self, value):
+        if not value.endswith('.shp'):
+            raise serializers.ValidationError("Invalid output outlet shapefile. Shapefile needs to be a .shp file:%s" % value)
+
+        return value
 
 class CreateOutletShapeRequestValidator(serializers.Serializer):
     outletPointX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
@@ -188,7 +211,37 @@ class GetCanopyVariableRequestValidator(serializers.Serializer):
             raise serializers.ValidationError("Invalid canopy variable name:%s. " % value)
         return value
 
-class ProjectShapeFileRequestValidator(serializers.Serializer):
+class ProjectShapeFileUTMRequestValidator(serializers.Serializer):
     input_shape_file = serializers.URLField(required=True)
     output_shape_file = serializers.CharField(required=False)
     utm_zone = serializers.IntegerField(required=True)
+
+
+class ProjectShapeFileEPSGRequestValidator(serializers.Serializer):
+    input_shape_file = serializers.URLField(required=True)
+    output_shape_file = serializers.CharField(required=False)
+    epsg_code = serializers.IntegerField(required=True)
+
+class ZipMyFilesRequestValidator(serializers.Serializer):
+    file_names = serializers.CharField(min_length=5, required=True)
+    zip_file_name = serializers.CharField(min_length=5, required=True)
+
+    def validate_file_names(self, value):
+        file_names = value.split(',')
+        if len(file_names) == 0:
+            raise serializers.ValidationError("No file name provided to be zipped")
+
+        for file_name in file_names:
+            if not validate_file_name(file_name):
+                raise serializers.ValidationError("%s is not a valid file name" % file_name)
+
+        return file_names
+
+    def validate_zip_file_name(self, value):
+        if not value.endswith('.zip'):
+            raise serializers.ValidationError("%s is not a valid zip file name" % value)
+
+        if not validate_file_name(value):
+                raise serializers.ValidationError("%s is not a valid file name" % value)
+
+        return value
