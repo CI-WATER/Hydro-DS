@@ -12,6 +12,7 @@ NOTE: Detail description of available web services is coming soon.
 - Project shape file
 - Project raster
 - Project and clip raster
+- Project and resample raster
 - Project NetCDF
 - Generate aspect raster
 - Generate slope raster
@@ -21,6 +22,7 @@ NOTE: Detail description of available web services is coming soon.
 - Resampele NetCDF to reference NetCDF
 - Reverse NetCDF Y-axis
 - Project, subset and resample NetCDF
+- Project, subset and resample raster
 - Concatenate NetCDF files
 - Generate canopy variable specific data in NetCDF format
 - List available data sources
@@ -29,6 +31,7 @@ NOTE: Detail description of available web services is coming soon.
 - Upload a file
 - Download a file
 - Delete a file
+- Zip a list of user files
 - List user files
 
 ## Supported data:
