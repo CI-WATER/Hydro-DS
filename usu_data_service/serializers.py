@@ -32,6 +32,14 @@ class SubsetDEMRequestValidator(InputRasterURLorStaticRequestValidator):
     output_raster = serializers.CharField(required=False)
 
 
+class SubsetUSGSNEDDEMRequestValidator(serializers.Serializer):
+    xmin = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    xmax = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    ymin = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    ymax = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    output_raster = serializers.CharField(required=True)
+
+
 class SubsetProjectResampleRasterRequestValidator(SubsetDEMRequestValidator):
     resample = serializers.CharField(min_length=1, required=False, default='near')
     dx = serializers.IntegerField(required=True)
@@ -121,6 +129,11 @@ class ComputeRasterSlopeRequestValidator(InputRasterRequestValidator):
 
 class ReverseNetCDFYaxisRequestValidator(InputNetCDFURLRequestValidator):
     output_netcdf = serializers.CharField(required=False)
+
+
+class ReverseNetCDFYaxisAndRenameVariableRequestValidator(ReverseNetCDFYaxisRequestValidator):
+    input_varname = serializers.CharField(required=False)
+    output_varname = serializers.CharField(required=False)
 
 
 class ProjectRasterRequestValidator(InputRasterRequestValidator):

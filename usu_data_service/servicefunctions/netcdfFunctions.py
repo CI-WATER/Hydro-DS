@@ -274,7 +274,7 @@ def reverse_netCDF_yaxis(input_netcdf, output_netcdf):    # resample='near'):
     Ncols = ref_data.RasterXSize
     Nrows = ref_data.RasterYSize
     inband = ref_data.GetRasterBand(1)
-    nodata = inband.GetNoDataValue()
+   # nodata = inband.GetNoDataValue()
     array = inband.ReadAsArray()
     dType = inband.DataType
 
@@ -286,7 +286,7 @@ def reverse_netCDF_yaxis(input_netcdf, output_netcdf):    # resample='near'):
     out_data.SetProjection(ref_proj)
     outband = out_data.GetRasterBand(1)
     array_rev = array[::-1]
-    outband.SetNoDataValue(nodata)
+    #outband.SetNoDataValue(nodata)
     outband.WriteArray(array_rev)
     outband.FlushCache()
     ref_data = None
@@ -303,6 +303,90 @@ def reverse_netCDF_yaxis(input_netcdf, output_netcdf):    # resample='near'):
     response_dict['success'] = 'True'
     response_dict['message'] = 'reversing of netcdf y-axis was successful'
     return response_dict
+
+
+def reverse_netCDF_yaxis_and_rename_variable(input_netcdf, output_netcdf, input_varname='Band1',
+                                             output_varname='Band1'):
+    """
+    """
+    response_dict = {'success': "False", 'message': "failed to reverse netcdf y-axis"}
+    try:
+        ncIn = netCDF4.Dataset(input_netcdf,"r") # format='NETCDF4')
+        xin = ncIn.variables['x'][:]
+        yin = ncIn.variables['y'][:]
+
+        ncOut = netCDF4.Dataset(output_netcdf,"w", format='NETCDF4')
+        ncOut.createDimension('y',len(yin))
+        ncOut.createDimension('x', len(xin))
+
+        dataType = ncIn.variables['x'].datatype
+        if input_varname not in ncIn.variables:
+            response_dict['message'] = 'reversing of netcdf y-axis and renaming variable failed. input variable ' \
+                                       'does not exist in input netcdf file'
+            return response_dict
+
+        vardataType = ncIn.variables[input_varname].datatype
+
+        ncOut.createVariable('y',dataType,('y',))
+        ncOut.createVariable('x',dataType,('x',))
+        ncOut.variables['y'][:] = yin[::-1]
+        ncOut.variables['x'][:] = xin[:]
+        ncOut.createVariable(output_varname,vardataType,('y','x',))
+
+        #Copy attributes
+        varAtts = ncIn.ncattrs()
+        attDict = dict.fromkeys(varAtts)
+
+        for attName in varAtts:
+            attDict[attName] = getattr(ncIn,attName)
+
+        ncOut.setncatts(attDict)
+        #variable
+        varAtts = ncIn.variables[input_varname].ncattrs()
+        attDict = dict.fromkeys(varAtts)
+
+        for attName in varAtts:
+            attDict[attName] = getattr(ncIn.variables[input_varname],attName)
+        ncOut.variables[output_varname].setncatts(attDict)
+
+        #grid mapping var
+        gridMapping = attDict['grid_mapping']
+        ncOut.createVariable(gridMapping,'c',())
+        varAtts = ncIn.variables[gridMapping].ncattrs()
+        attDict = dict.fromkeys(varAtts)
+
+        for attName in varAtts:
+            attDict[attName] = getattr(ncIn.variables[gridMapping],attName)
+
+        ncOut.variables[gridMapping].setncatts(attDict)
+        ncOut.variables[gridMapping].setncatts(attDict)
+        #dim variables
+        xAtts = ncIn.variables['x'].ncattrs()
+        attDict = dict.fromkeys(xAtts)
+
+        for attName in xAtts:
+            attDict[attName] = getattr(ncIn.variables['x'],attName)
+
+        ncOut.variables['x'].setncatts(attDict)
+        yAtts = ncIn.variables['y'].ncattrs()
+        attDict = dict.fromkeys(yAtts)
+
+        for attName in yAtts:
+            attDict[attName] = getattr(ncIn.variables['y'],attName)
+        ncOut.variables['y'].setncatts(attDict)
+        array = ncIn.variables[input_varname][:]
+        ncOut.variables[output_varname][:] = array[::-1]
+
+        ncIn.close()
+        ncOut.close()
+    except:
+        response_dict['message'] = 'reversing of netcdf y-axis and renaming variable failed'
+        return response_dict
+
+    response_dict['success'] = 'True'
+    response_dict['message'] = 'reversing of netcdf y-axis was successful'
+    return response_dict
+
 
 """
 resample_netCDF_to_referenceNetCDF('SpawnProj_2010.nc','Spawn17.nc','prcp','Res2.nc')

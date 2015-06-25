@@ -31,6 +31,16 @@ funcs = {
                     'validator': SubsetDEMRequestValidator
                 },
 
+          'subsetUSGSNEDDEM':
+                {
+                    'function_to_execute': subset_USGS_NED_DEM,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_raster': 'subset_usgs_ned_dem.tif'}],
+                    'user_file_inputs': [],
+                    'user_inputs': ['xmin', 'ymax', 'xmax', 'ymin'],
+                    'validator': SubsetUSGSNEDDEMRequestValidator
+                },
+
           'subsetprojectresamplerasterutm':
                 {
                     'function_to_execute': subset_project_and_resample_Raster_UTM_NAD83,
@@ -199,6 +209,16 @@ funcs = {
                    'user_inputs': [],
                    'user_file_inputs': ['input_netcdf'],
                    'validator': ReverseNetCDFYaxisRequestValidator
+                },
+
+          'reversenetcdfyaxisandrenamevariable':
+                {
+                   'function_to_execute': reverse_netCDF_yaxis_and_rename_variable,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'reverse_yaxis.nc'}],
+                   'user_inputs': ['input_varname', 'output_varname'],
+                   'user_file_inputs': ['input_netcdf'],
+                   'validator': ReverseNetCDFYaxisAndRenameVariableRequestValidator
                 },
 
           'subsetnetcdftoreference':
