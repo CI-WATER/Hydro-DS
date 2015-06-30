@@ -54,31 +54,25 @@ def project_shapefile_EPSG(input_shape_file, output_shape_file, epsg_code):
     return call_subprocess(cmdString, "Project Shape File")
 
 def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletPointY=None, output_raster=None,
-                                       output_outlet_shapefile=None, epsgCode=None, streamThreshold=None):
+                               output_outlet_shapefile=None, epsgCode=None, streamThreshold=None):
     """TauDEM doesn't take compressed file; uncompress file
         ToDO:  Check compression first"""
 
     input_Outlet_shpFile_uuid_path = generate_uuid_file_path()
-    print('>>>shape_file_uuid_path:' + input_Outlet_shpFile_uuid_path)
 
-    print("starting create outlet function")
     response_dict = create_OutletShape(shapefilePath=input_Outlet_shpFile_uuid_path, outletPointX=outletPointX,
                                        outletPointY=outletPointY)
-    #print(response_dict)
-    #return response_dict
+
     if response_dict['success'] == 'False':
         return response_dict
 
-    print('outlet shape file created')
     input_Outlet_shpFile = os.path.join(input_Outlet_shpFile_uuid_path, 'outlet', 'outlet.shp')
     input_proj_shape_file = os.path.join(input_Outlet_shpFile_uuid_path, 'outlet', 'outlet-proj.shp')
 
-    response_dict = project_shapefile_EPSG(input_shape_file=input_Outlet_shpFile, epsgCode=epsgCode,
+    response_dict = project_shapefile_EPSG(input_shape_file=input_Outlet_shpFile, epsg_code=epsgCode,
                                            output_shape_file=input_proj_shape_file)
     if response_dict['success'] == 'False':
         return response_dict
-
-    print('outlet shape file projected')
 
     temp_raster = 'temp.tif'
     retDictionary = uncompressRaster(input_DEM_raster, temp_raster)
@@ -156,15 +150,13 @@ def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletP
 
 
 def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, output_raster,
-                                       output_outlet_shapefile, epsgCode, streamThreshold):
+                                       output_outlet_shapefile, streamThreshold):
     """TauDEM doesn't take compressed file; uncompress file
         ToDO:  Check compression first"""
     temp_raster = 'temp.tif'
     retDictionary = uncompressRaster(input_DEM_raster, temp_raster)
     if retDictionary['success']=="False":
         return retDictionary
-
-    print("uncompress successful")
 
     input_raster = os.path.splitext(input_DEM_raster)[0]      #remove the .tif
     # pit remove
@@ -173,16 +165,12 @@ def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, ou
     if retDictionary['success']=="False":
         return retDictionary
 
-    print("pitremove successful")
-
     #d8 flow dir
     cmdString = "d8flowdir -fel "+input_raster+"fel.tif -sd8 "+input_raster+"sd8.tif -p "\
                 +input_raster+"p.tif"
     retDictionary = call_subprocess(cmdString, 'd8 flow direction')
     if retDictionary['success']=="False":
         return retDictionary
-
-    print("d8flowdir successful")
 
     #d8 contributing area without outlet shape file
     cmdString = "aread8 -p "+input_raster+"p.tif -ad8 "+input_raster+"ad8.tif -nc"         #check the effect of -nc
@@ -191,7 +179,6 @@ def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, ou
     if retDictionary['success']=="False":
         return retDictionary
 
-    print("aread8_1 successful")
     #Get statistics of ad8 file to determine threshold
 
     #Stream definition by threshold
@@ -200,33 +187,25 @@ def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, ou
     if retDictionary['success']=="False":
         return retDictionary
 
-    print("threshold_1 successful")
-
     #move outlets to stream
-    print("input_outlet_shapefile:" + input_outlet_shapefile)
-    print("input_raster:" + input_raster)
-    print("output_outlet_shapefile:" + output_outlet_shapefile)
-
     cmdString = "moveoutletstostrm -p "+input_raster+"p.tif -src "+input_raster+"src.tif -o "\
                 +input_outlet_shapefile+ " -om "+output_outlet_shapefile
     retDictionary = call_subprocess(cmdString, 'move outlet to stream')
 
-    if retDictionary['success']=="False":
+    if retDictionary['success'] == "False":
         return retDictionary
 
-    print("moveoutletstostrm successful")
-
     #Add projection to moved outlet ---TauDEM excludes the projection from moved outlet; check
-    #project_Shapefile_UTM_NAD83("outletMoved.shp", output_Outlet_shpFile, utmZone)
-    #driver = ogr.GetDriverByName("ESRI Shapefile")
-    #dataset = driver.Open(input_Outlet_shpFile)
-    #layer = dataset.GetLayer()
-    #srs = layer.GetSpatialRef()
+    driverName = "ESRI Shapefile"
+    driver = ogr.GetDriverByName(driverName)
+    dataset = driver.Open(input_outlet_shapefile)
+    layer = dataset.GetLayer()
+    srs = layer.GetSpatialRef()
     baseName = os.path.splitext(output_outlet_shapefile)[0]
     projFile = baseName+".prj"
     #srsString = "+proj=utm +zone="+str(utmZone)+" +ellps=GRS80 +datum=NAD83 +units=m"
-    srs = osr.SpatialReference()
-    srs.ImportFromEPSG(epsgCode)
+    #srs = osr.SpatialReference()
+    #srs.ImportFromEPSG(epsgCode)
     #srs.ImportFromProj4(srsString)
     srs.MorphFromESRI()
     file = open(projFile, "w")
@@ -235,10 +214,8 @@ def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, ou
     #d8 contributing area with outlet shapefile
     cmdString = "aread8 -p "+input_raster+"p.tif -ad8 "+input_raster+"ad8.tif -o "+output_outlet_shapefile+" -nc"
     retDictionary = call_subprocess(cmdString, 'd8 contributing area with outlet shapefile')
-    if retDictionary['success']=="False":
+    if retDictionary['success'] == "False":
         return retDictionary
-
-    print("aread8_2 successful")
 
     #watershed grid file using the threshold function
     cmdString =  "threshold -ssa "+input_raster+"ad8.tif -src "+output_raster+" -thresh 1"

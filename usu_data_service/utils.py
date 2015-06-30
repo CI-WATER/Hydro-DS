@@ -5,6 +5,7 @@ from uuid import uuid4
 import shutil
 import glob
 import zipfile
+import logging
 
 from django.core.files import File
 from django.core.validators import URLValidator
@@ -15,6 +16,7 @@ from rest_framework.exceptions import ValidationError as DRF_ValidationError
 from ciwater import settings
 from usu_data_service.models import UserFile
 
+logger = logging.getLogger(__name__)
 
 def generate_uuid_file_path(file_name=None):
     import usu_data_service
@@ -34,7 +36,6 @@ def copy_input_file_to_uuid_working_directory(uuid_path, file_url_path):
             user_folder = path_parts[-2]
         else:
             user_folder = ''
-        print('user_folder:' + user_folder)
 
         source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
         if not os.path.isfile(source_file_path):
@@ -53,17 +54,18 @@ def zip_user_files(user, file_name_list, zip_file_name):
 
     # create temp UUID directory and copy the selected files there for zipping
     uuid_file_path = generate_uuid_file_path()
-    print("uuid_file_path:" + uuid_file_path)
+    logger.debug("uuid_file_path for zip files function:" + uuid_file_path)
+
     user_folder = 'user_%s' % user.id
+
     # check the listed files to be zipped exists
-    print("checking file name")
     for file_name in file_name_list:
         source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
         if not os.path.isfile(source_file_path):
             raise DRF_ValidationError(detail={'file_name_list': "{file_name} was not found.".format(file_name)})
 
+    logger.debug("copying file to working directory:{w_dir}".format(w_dir=uuid_file_path))
     for file_name in file_name_list:
-        print("copying files to uuid file path")
         source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
         destination_file_path = os.path.join(uuid_file_path, file_name)
         shutil.copyfile(source_file_path, destination_file_path)
@@ -74,16 +76,16 @@ def zip_user_files(user, file_name_list, zip_file_name):
     os.makedirs(zip_target_path)
     zip_file = os.path.join(zip_target_path, zip_file_name)
     zf = zipfile.ZipFile(zip_file, 'w')
+    logger.debug("starting to zip files")
     for each_file in glob.glob(files_to_look_for):
-        print("zipping files")
         zf.write(each_file, os.path.relpath(each_file, uuid_file_path))
 
     zf.close()
 
     # if the zip file already exists, delete it first
     delete_user_file(user, zip_file_name)
+    logger.debug("saving the generated zip file to django as user file")
 
-    print("saving zip file to django")
     # save zip file in django
     user_file = UserFile(file=File(open(zip_file, 'rb')))
     user_file.user = user
@@ -92,16 +94,15 @@ def zip_user_files(user, file_name_list, zip_file_name):
     # delete uuid temp working directory
     delete_working_uuid_directory(uuid_file_path)
 
-    print("creating zip file url")
     # return zip file url
     zip_file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
-    print("zip_file_url:" + zip_file_url)
+    logger.debug("zip_file_url:" + zip_file_url)
     return zip_file_url
 
 
 def unzip_shape_file(shape_zip_file):
     target_unzip_directory = os.path.dirname(shape_zip_file)
-    print(">>>> unzipping to:" + target_unzip_directory)
+    logger.debug("unzipping shape zip file to:" + target_unzip_directory)
     with zipfile.ZipFile(shape_zip_file, "r") as z:
         z.extractall(target_unzip_directory)
 
@@ -111,7 +112,7 @@ def is_input_file_url_path(input_file):
     url_validator = URLValidator()
     try:
         url_validator(input_file)
-    except ValidationError as e:
+    except ValidationError:
         return False
     return True
 
@@ -130,7 +131,6 @@ def validate_url_file_path(file_url_path):
         user_folder = path_parts[-2]
     else:
         user_folder = ''
-    print('user_folder:' + user_folder)
 
     source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
     if not os.path.isfile(source_file_path):
@@ -164,7 +164,9 @@ def delete_user_file(user, filename):
         if os.path.basename(user_file.file.name) == filename:
             user_file.file.delete()
             user_file.delete()
-            print('>>> file_deleted:' + filename)
+            logger.debug("{file_name} file got deleted to save output file with the "
+                         "same name".format(file_name=filename))
+
             break
 
 
@@ -209,4 +211,4 @@ def delete_working_uuid_directory(dir_to_delete):
         if not dir_to_delete.endswith(data_service_working_directory):
             shutil.rmtree(dir_to_delete)
 
-    print ('cleanup working dir name:' + dir_to_delete)
+    logger.debug('deleted working directory:' + dir_to_delete)

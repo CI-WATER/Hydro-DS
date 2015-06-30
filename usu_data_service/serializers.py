@@ -12,11 +12,9 @@ class InputRasterURLorStaticRequestValidator(serializers.Serializer):
     def validate_input_raster(self, value):
         # check first if it is a valid url file path
         try:
-            print('1>>>value')
             validate_url_file_path(value)
         except ValidationError:
             # assume this a static file name
-            print('2>>>value')
             static_file_path = get_static_data_file_path(value)
             if static_file_path is None:
                 raise serializers.ValidationError("Invalid static data file name:%s" % value)
@@ -77,7 +75,7 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
 class DelineateWatershedRequestValidator(serializers.Serializer):
     outletPointX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     outletPointY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    utmZone = serializers.IntegerField(required=True)
+    epsgCode = serializers.IntegerField(required=True)
     streamThreshold = serializers.IntegerField(required=True)
     input_DEM_raster = serializers.URLField(required=True)
     output_raster = serializers.CharField(required=True)
@@ -85,7 +83,6 @@ class DelineateWatershedRequestValidator(serializers.Serializer):
 
 
 class DelineateWatershedAtShapeFileRequestValidator(serializers.Serializer):
-    epsgCode = serializers.IntegerField(required=True)
     streamThreshold = serializers.IntegerField(required=True)
     input_DEM_raster = serializers.URLField(required=True)
     input_outlet_shapefile = serializers.URLField(required=True)
@@ -129,6 +126,14 @@ class ComputeRasterSlopeRequestValidator(InputRasterRequestValidator):
 
 class ReverseNetCDFYaxisRequestValidator(InputNetCDFURLRequestValidator):
     output_netcdf = serializers.CharField(required=False)
+
+
+class ConvertNetCDFUnitsRequestValidator(InputNetCDFURLRequestValidator):
+    output_netcdf = serializers.CharField(required=False)
+    variable_name = serializers.CharField(required=True)
+    variable_new_units = serializers.CharField(required=False)
+    multiplier_factor = serializers.DecimalField(required=False, default=1.0, max_digits=12, decimal_places=8)
+    offset = serializers.DecimalField(required=False, default=0, max_digits=12, decimal_places=8)
 
 
 class ReverseNetCDFYaxisAndRenameVariableRequestValidator(ReverseNetCDFYaxisRequestValidator):
@@ -258,6 +263,7 @@ class ProjectShapeFileEPSGRequestValidator(serializers.Serializer):
     output_shape_file = serializers.CharField(required=False)
     epsg_code = serializers.IntegerField(required=True)
 
+
 class ZipMyFilesRequestValidator(serializers.Serializer):
     file_names = serializers.CharField(min_length=5, required=True)
     zip_file_name = serializers.CharField(min_length=5, required=True)
@@ -281,3 +287,24 @@ class ZipMyFilesRequestValidator(serializers.Serializer):
                 raise serializers.ValidationError("%s is not a valid file name" % value)
 
         return value
+
+
+class StringListField(serializers.ListField):
+    child = serializers.CharField()
+
+
+class HydroShareCreateResourceRequestValidator(serializers.Serializer):
+    hs_username = serializers.CharField(min_length=1, required=True)
+    hs_password = serializers.CharField(min_length=1, required=True)
+    file_name = serializers.CharField(min_length=5, required=True)
+    resource_type = serializers.CharField(min_length=5, required=True)
+    title = serializers.CharField(min_length=5, max_length=200, required=False)
+    abstract = serializers.CharField(min_length=5, required=False)
+    keywords = StringListField(required=False)
+
+
+class DownloadStreamflowRequestValidator(serializers.Serializer):
+    USGS_gage = serializers.CharField(required=True)
+    Start_Year = serializers.IntegerField(required=True)
+    End_Year = serializers.IntegerField(required=True)
+    output_streamflow = serializers.CharField(required=False)

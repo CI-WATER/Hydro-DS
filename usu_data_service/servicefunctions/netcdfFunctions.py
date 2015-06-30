@@ -11,6 +11,32 @@ import netCDF4
 from scipy import interpolate
 from .utils import *
 
+
+def convert_netcdf_units(input_netcdf, output_netcdf, variable_name, variable_new_units=" ", multiplier_factor=1,
+                         offset=0):
+    """
+    does unit conversion for a variable in netcdf file
+    :param input_netcdf: input
+    :param output_netcdf: output
+    :param variable_name: name of variable of interest
+    :param variable_new_units: name of the new unit after conversion
+    :param multiplier_factor: self explanatory
+    :param offset: additive factor
+    :return:
+    """
+    working_dir = os.path.dirname(input_netcdf)
+    temp_netcdf = os.path.join(working_dir, "temp_netcdf.nc")
+    cmdString = "ncap2 -s\'"+variable_name+"=float("+str(offset) +" + "+str(multiplier_factor)+"*"+variable_name+")\' "+input_netcdf+" "+temp_netcdf
+
+    subprocess_response_dict = call_subprocess(cmdString, 'convert netcdf units')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
+
+    cmdString = "ncatted -a units,"+variable_name+",m,c,\'"+variable_new_units+"\' "+temp_netcdf+" "+output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'rename netcdf units')
+    return subprocess_response_dict
+
+
 def project_and_resample_Array(input_array, srs_geotrs, srs_proj, Nxin, Nyin, reference_netcdf):  #, output_array):
 
     #srs_data = gdal.Open(input_raster, GA_ReadOnly)
@@ -100,9 +126,8 @@ def project_subset_and_resample_netcdf_to_reference_netcdf(input_netcdf, referen
     attDict = dict.fromkeys(varAtts)
     for attName in varAtts:
         attDict[attName] = getattr(ncIn.variables[variable_name],attName)
-    print (variable_name)
+
     ncOut.variables[variable_name].setncatts(attDict)
-    print ("hello")
     xAtts = ncIn.variables['x'].ncattrs()
     attDict = dict.fromkeys(xAtts)
     for attName in xAtts:
@@ -470,7 +495,6 @@ def resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
 
-    #print("starting loop")
     #re-open file to write re-gridded data
     try:
         ncOut = netCDF4.Dataset(output_netcdf,"r+") #, format='NETCDF4')
@@ -479,14 +503,13 @@ def resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable
         timeLen = len(ncIn.dimensions['time'])
         yLen = len(yout)
         xLen = len(xout)
-        #print("entering for time loop")
+
         for tk in range(timeLen):
             varin[:,:] = ncIn.variables[variable_name][tk,:,:]
-            #print(">>entering for y loop")
             for yi in range(yLen):
                 y1 = int(numpy.floor(abs(yout[yi]-yin[0])/dy))    # abs to make sure
                 y2 = y1+1
-                #print(">>entering for X loop:" + )
+
                 for xj in range(xLen):
                     x1 = int(numpy.floor(abs(xout[xj]-xin[0])/dx))
                     x2 =x1+1
@@ -497,12 +520,10 @@ def resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable
         ncIn.close()
         ncOut.close()
     except:
-        #print("Error")
         subprocess_response_dict['success'] = 'False'
         subprocess_response_dict['message'] = 'error in resampling netcdf file'
         return subprocess_response_dict
 
-    #print("Loop ended")
     subprocess_response_dict['message'] = "resample of netcdf was successful"
     return subprocess_response_dict
 
@@ -696,10 +717,10 @@ def combineNetCDFs(input_netcdf1, input_netcdf2, output_netcdf):
     """
     cmdString = "gdalwarp -of GTiff -overwrite "+input_netcdf1+" "+input_netcdf2+" tempRaster.tif"  #+output_raster
     callSubprocess(cmdString, "create intermediate raster file")
-    #print 'done concatenating netcdfs'
+
     cmdString = "gdal_translate -of NetCDF tempRaster.tif "+output_netcdf
     callSubprocess(cmdString, "combine two netcdf files")
-    #print 'done function'
+
     #delete intermediate file
     os.remove('tempRaster.tif')
 
@@ -737,7 +758,7 @@ def bilinear_interpolation_with_points_outside_Rectangle(x, y, points):
             repr(y1)+' '+repr(y2)
         #raise ValueError(warnString)
         """TZG added this 12.5.14 for inspection """
-        print (warnString)
+
         #use boundary values
         if (x < x1):
             x = x1

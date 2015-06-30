@@ -1,4 +1,6 @@
 import logging
+import json
+import requests
 
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
@@ -11,6 +13,7 @@ from usu_data_service.servicefunctions.watershedFunctions import *
 from usu_data_service.servicefunctions.netcdfFunctions import *
 from usu_data_service.servicefunctions.canopyFunctions import *
 from usu_data_service.servicefunctions.static_data import *
+from usu_data_service.topnet_data_service.TOPNET_Function import CommonLib
 from usu_data_service.serializers import *
 from usu_data_service.models import *
 from usu_data_service.utils import *
@@ -24,7 +27,7 @@ funcs = {
           'rastersubset':
                 {
                     'function_to_execute': get_raster_subset,
-                    'file_inputs': [],  #{'input_raster': WESTERN_US_DEM}
+                    'file_inputs': [],
                     'file_outputs': [{'output_raster': 'subset.tif'}],
                     'user_file_inputs': ['input_raster'],
                     'user_inputs': ['xmin', 'ymax', 'xmax', 'ymin'],
@@ -76,7 +79,7 @@ funcs = {
                     'function_to_execute': delineate_Watershed_TauDEM,
                     'file_inputs': [],
                     'file_outputs': [{'output_raster': 'watershed.tif'}, {'output_outlet_shapefile': 'moveout.shp'}],
-                    'user_inputs': ['utmZone', 'streamThreshold', 'outletPointX', 'outletPointY'],
+                    'user_inputs': ['epsgCode', 'streamThreshold', 'outletPointX', 'outletPointY'],
                     'user_file_inputs': ['input_DEM_raster'],
                     'validator': DelineateWatershedRequestValidator
                 },
@@ -86,7 +89,7 @@ funcs = {
                     'function_to_execute': delineate_Watershed_atShapeFile,
                     'file_inputs': [],
                     'file_outputs': [{'output_raster': 'watershed.tif'}, {'output_outlet_shapefile': 'moveout.shp'}],
-                    'user_inputs': ['epsgCode', 'streamThreshold'],
+                    'user_inputs': ['streamThreshold'],
                     'user_file_inputs': ['input_DEM_raster', 'input_outlet_shapefile'],
                     'validator': DelineateWatershedAtShapeFileRequestValidator
                 },
@@ -312,6 +315,27 @@ funcs = {
                    'validator': GetCanopyVariableRequestValidator
                 },
 
+          'convertnetcdfunits':
+                {
+                   'function_to_execute': convert_netcdf_units,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'converted_units.nc'}],
+                   'user_inputs': ['variable_name', 'variable_new_units', 'multiplier_factor', 'offset'],
+                   'user_file_inputs': ['input_netcdf'],
+                   'validator': ConvertNetCDFUnitsRequestValidator
+                },
+
+          # sample TOPNET service testing
+          'downloadstreamflow':
+                {
+                   'function_to_execute': CommonLib.download_streamflow,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_streamflow': 'streamflow_calibration.dat'}],
+                   'user_inputs': ['USGS_gage', 'Start_Year', 'End_Year'],
+                   'user_file_inputs': [],
+                   'validator': DownloadStreamflowRequestValidator
+                },
+
          }
 
 
@@ -333,11 +357,15 @@ class RunService(APIView):
 
     def get(self, request, func, format=None):
 
-        print('Executing python data service function:' + func)
+        if not request.user.is_authenticated():
+            raise NotAuthenticated()
+
+        logger.info('Executing python data service function:' + func)
         params = funcs.get(func, None)
 
         if not params:
-            return Response({'success': False, 'error': 'No such function {} is supported.'.format(func)})
+            return Response({'success': False, 'error': 'No such function {function_name} is '
+                                                        'supported.'.format(function_name=func)})
 
         validator = params['validator']
 
@@ -352,6 +380,9 @@ class RunService(APIView):
 
         # generate uuid file name for each parameter in file_outputs dict
         uuid_file_path = generate_uuid_file_path()
+        logger.debug('temporary uuid working directory for function ({function_name}):{w_dir}'.format(
+                     function_name=func, w_dir=uuid_file_path))
+
         output_files = {}
         for param_dict_item in params['file_outputs']:
             for param_name in param_dict_item:
@@ -377,16 +408,15 @@ class RunService(APIView):
                     uuid_input_file_path = uuid_input_file_path.replace('zip', 'shp')
 
                 subprocparams[p] = uuid_input_file_path
-                print('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
+                logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
             else:
                 static_data_file_path = get_static_data_file_path(input_file)
                 subprocparams[p] = static_data_file_path
-                print('input_static_file_path:' + static_data_file_path)
+                logger.debug('input_static_file_path:' + static_data_file_path)
 
         # execute the function
         result = params['function_to_execute'](**subprocparams)
-
-        print(result)
+        logger.debug('result from function ({function_name}):{result}'.format(function_name=func, result=result))
 
         # process function output results
         data = []
@@ -406,7 +436,6 @@ class RunService(APIView):
 def show_static_data_info(request):
     data = get_static_data_files_info()
     response_data = {'success': True, 'data': data, 'error': []}
-    logger.debug("show static data")
     return Response(data=response_data)
 
 @api_view(['POST'])
@@ -456,13 +485,62 @@ def delete_my_file(request, filename):
     for user_file in UserFile.objects.filter(user=request.user).all():
         if user_file.file.name.split('/')[2] == filename:
             user_file.delete()
-            print ("file deleted:" + filename)
+            logger.debug("file deleted for replacement by a new file with the same name:" + filename)
             break
 
     else:
         raise NotFound()
 
     response_data = {'success': True, 'data': filename, 'error': []}
+    return Response(data=response_data)
+
+@api_view(['GET'])
+def create_hydroshare_resource(request):
+    if not request.user.is_authenticated():
+        raise NotAuthenticated()
+
+    request_validator = HydroShareCreateResourceRequestValidator(data=request.query_params)
+    if not request_validator.is_valid():
+        raise DRF_ValidationError(detail=request_validator.errors)
+
+    hs_username = request_validator.validated_data['hs_username']
+    hs_password = request_validator.validated_data['hs_password']
+    hydroshare_auth = (hs_username, hs_password)
+    file_name = request_validator.validated_data['file_name']
+    resource_type = request_validator.validated_data['resource_type']
+    title = request_validator.validated_data.get('title', None)
+    abstract = request_validator.validated_data.get('abstract', None)
+    keywords = request_validator.validated_data.get('keywords', None)
+
+    for user_file in UserFile.objects.filter(user=request.user).all():
+        if user_file.file.name.split('/')[2] == file_name:
+            break
+    else:
+        raise NotFound()
+
+    hs_url = 'http://www.hydroshare.org/hsapi/resource'
+    payload = {'resource_type': resource_type}
+    if title:
+        payload['title'] = title
+    if abstract:
+        payload['abstract'] = abstract
+
+    if keywords:
+        payload['keywords'] = keywords
+
+    user_folder = 'user_%s' % request.user.id
+    source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
+    files = {'file': open(source_file_path, 'rb')}
+    # create a resource in HydroShare
+    response = requests.post(hs_url+'/?format=json', data=payload, files=files, auth=hydroshare_auth)
+
+    if response.ok:
+        response_content_dict = json.loads(response.content.decode('utf-8'))
+        response_data = {'success': True, 'data': response_content_dict, 'error': []}
+    else:
+        err_msg = "Failed to create a resource in HydroShare.{reason}".format(reason=response.reason)
+        response_data = {'success': False, 'data': [], 'error': err_msg}
+
     return Response(data=response_data)
 
 
@@ -485,18 +563,23 @@ def zip_my_files(request):
 
 def _save_output_files_in_django(output_files, user=None):
     output_files_in_django = {}
+
+    # first delete if any of these output files already exist for the user
+    for key, value in output_files.items():
+        if user:
+            file_to_delete = os.path.basename(value)
+            # check if the output file is a shape file then we need to delete a matching zip file
+            # as shapefiles are saved as zip files
+            if file_to_delete.endswith('.shp'):
+                file_to_delete = file_to_delete[:-4] + '.zip'
+            delete_user_file(user, file_to_delete)
+
     for key, value in output_files.items():
         # check if it is a shape file
         ext = os.path.splitext(value)[1]
-        print("output_file_path:" + value)
-        print("extension:" + ext)
         if ext == '.shp':
-            print('creating zip for shape files')
+            logger.debug('creating zip for shape files')
             value = create_shape_zip_file(value)
-
-        if user:
-            file_to_delete = os.path.basename(value)
-            delete_user_file(user, file_to_delete)
 
         user_file = UserFile(file=File(open(value, 'rb')))
         if user:
@@ -504,7 +587,8 @@ def _save_output_files_in_django(output_files, user=None):
 
         user_file.save()
         output_files_in_django[key] = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
-        print ('file url:' + user_file.file.url)
+        logger.debug('django file url for the output file:' + user_file.file.url)
+
     return output_files_in_django
 
 

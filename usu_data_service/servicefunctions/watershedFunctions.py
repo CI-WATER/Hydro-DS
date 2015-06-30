@@ -103,7 +103,7 @@ def subset_project_and_resample_Raster_UTM_NAD83(input_raster, output_raster, xm
     cmdString = "gdalwarp -t_srs '+proj=utm +zone=" +str(utmZone)+ " +datum=NAD83' -tr "\
                 +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite tempRaster.tif "+output_raster
     retDictionary = call_subprocess(cmdString, "project and re-grid DEM")
-    print(">>>gdawrap done ..")
+
     #Delete temp file
     #os.remove("tempRaster.tif")
     return retDictionary
@@ -168,7 +168,6 @@ def create_OutletShape(shapefilePath, outletPointX, outletPointY, shape_file_nam
     response_dict = {'success': 'False', 'message': None}
     if drv is None:
         message = "{} driver not available.\n".format(driverName)
-        print(message)
         response_dict['message'] = message
         return  response_dict
         #sys.exit( 1 )
@@ -177,31 +176,22 @@ def create_OutletShape(shapefilePath, outletPointX, outletPointY, shape_file_nam
     ds = drv.CreateDataSource(shape_file_name)   #, 0, 0, 0, gdal.GDT_Unknown )
     if ds is None:
         message = "Creation of shapefile failed.\n"
-        print(message)
         response_dict['message'] = message
         return response_dict
-        #print("Creation of shapefile failed.\n")
-        #sys.exit( 1 )
 
     lyr = ds.CreateLayer(shape_file_name, srs, ogr.wkbPoint ) #Add srs
     if lyr is None:
         message = "Layer creation failed.\n"
-        print(message)
         response_dict['message'] = message
         return response_dict
-        # print("Layer creation failed.\n")
-        # sys.exit( 1 )
 
     field_defn = ogr.FieldDefn( "outletName", ogr.OFTString )
     field_defn.SetWidth( 32 )
 
     if lyr.CreateField ( field_defn ) != 0:
         message = "Creation Name filed failed.\n"
-        print(message)
         response_dict['message'] = message
         return response_dict
-        # print ("Creating Name field failed.\n")
-        # sys.exit( 1 )
 
     x = float(outletPointX)
     y = float(outletPointY)
@@ -217,11 +207,8 @@ def create_OutletShape(shapefilePath, outletPointX, outletPointY, shape_file_nam
 
     if lyr.CreateFeature(feat) != 0:
         message = "Failed to create feature in shapefile.\n"
-        print(message)
         response_dict['message'] = message
         return response_dict
-        # print ("Failed to create feature in shapefile.\n")
-        # sys.exit( 1 )
 
     feat.Destroy()
 
@@ -330,6 +317,47 @@ def resample_Raster(input_raster, output_raster, dx, dy, resample='near'):
 #     call_subprocess(cmdString, "project and re-grid DEM")
 #     #Delete temp file
 #     os.remove("tempRaster.tif")
+
+# TODO : this function does not work - fails at the unzip as 7z is not installed on the server
+def subset_USGS_NED_DEM(output_raster, xmin, ymax, xmax, ymin):
+    """
+    This function downloads usgs ned dem for user chosen area using usgs web services,
+    then it subsets the DEM projects to NAD83 UTM, and re-samples/re-grids.
+    parameters are left, top, right, bottom (lon lat coordinates) in decimal degrees (GCS NAD83)
+    """
+    serviceString = "wget ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/NED/1/IMG/"
+    latTop = int(math.ceil(ymax))
+    latBottom = int(math.ceil(ymin))
+    lonLeft =  -1*(int(math.floor(xmin)))
+    lonRight = -1*(int(math.floor(xmax)))
+    #check time taken by the following loop
+    for lat in range(latBottom, latTop+1):
+        for lon in range(lonRight, lonLeft+1):
+            if (lon < 100):
+                lonStr = "0"+str(lon)
+            else:
+                lonStr = str(lon)
+            zipFile = "n"+str(lat)+"w"+lonStr+".zip"
+            cmdString = serviceString+zipFile
+            retDictionary = call_subprocess(cmdString, "download USGS DEM using web services")
+            if retDictionary['success'] == "False":
+                return retDictionary
+            #unzip file
+            cmdString = "7z e "+ zipFile+ " *.img -r -y"
+            retDictionary = call_subprocess(cmdString, "Extract DEM img from Zip file")
+            if retDictionary['success'] == "False":
+                return retDictionary
+    #add to mosaic nedSub temporary file
+
+    cmdString = "gdalwarp -of GTiff -overwrite *.img nedsubTempMosaic.tif"
+    retDictionary = call_subprocess(cmdString, "Mosaic images")
+    if retDictionary['success'] == "False":
+        return retDictionary
+
+    #subset
+    cmdString = "gdal_translate"+" "+"-projwin"+" "+str(xmin)+" "+str(ymax)+" "\
+               +str(xmax)+" "+str(ymin)+" nedsubTempMosaic.tif "+output_raster
+    return call_subprocess(cmdString, "subset USGS DEM")
 
 
 def download_USGSNED_subset_resample_and_Project(output_dir, output_raster, xmin, ymax, xmax, ymin, dx, dy, resample='near'):
