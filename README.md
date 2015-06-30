@@ -19,12 +19,14 @@ NOTE: Detail description of available web services is coming soon.
 - Convert raster to NetCDF
 - Combine two rasters
 - Resample raster
-- Resampele NetCDF to reference NetCDF
-- Reverse NetCDF Y-axis
+- Resample NetCDF to reference NetCDF
+- Reverse NetCDF Y-axis (and rename variable)
 - Project, subset and resample NetCDF
 - Project, subset and resample raster
 - Concatenate NetCDF files
 - Generate canopy variable specific data in NetCDF format
+- Convert NetCDF data units
+- Create HydroShare resource
 - List available data sources
 
 ## Other supporting services:
