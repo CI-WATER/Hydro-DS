@@ -469,8 +469,9 @@ def show_my_files(request):
 
     user_files = []
     for user_file in UserFile.objects.filter(user=request.user).all():
-        user_file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
-        user_files.append(user_file_url)
+        if user_file.file:
+            user_file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+            user_files.append(user_file_url)
 
     response_data = {'success': True, 'data': user_files, 'error': []}
 
@@ -484,8 +485,10 @@ def delete_my_file(request, filename):
 
     for user_file in UserFile.objects.filter(user=request.user).all():
         if user_file.file.name.split('/')[2] == filename:
+            user_file.file.delete()
             user_file.delete()
-            logger.debug("file deleted for replacement by a new file with the same name:" + filename)
+            logger.debug("{file_name} file deleted by user:{user_id}".format(file_name=filename,
+                                                                             user_id=request.user.id))
             break
 
     else:

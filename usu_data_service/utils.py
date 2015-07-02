@@ -162,10 +162,17 @@ def create_shape_zip_file(shape_file_path):
 def delete_user_file(user, filename):
     for user_file in UserFile.objects.filter(user__id=user.id):
         if os.path.basename(user_file.file.name) == filename:
+            file_path = user_file.file.path
             user_file.file.delete()
             user_file.delete()
-            logger.debug("{file_name} file got deleted to save output file with the "
-                         "same name".format(file_name=filename))
+            # try:
+            #     if os.path.isfile(file_path):
+            #         os.remove(file_path)
+            # except Exception:
+            #     pass
+
+            logger.debug("{file_name} file got deleted by system to save output file with the "
+                         "same name".format(file_name=file_path))
 
             break
 
