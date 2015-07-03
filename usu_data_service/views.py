@@ -64,15 +64,16 @@ funcs = {
                     'validator': SubsetProjectResampleRasterEPSGRequestValidator
                 },
 
+
           'rastertonetcdf':
                 {
                     'function_to_execute': rasterToNetCDF,
                     'file_inputs': [],
                     'file_outputs': [{'output_netcdf': 'output.nc'}],
-                    'user_inputs': [],
+                    'user_inputs': ['increasing_x', 'increasing_y', 'output_varname'],
                     'user_file_inputs': ['input_raster'],
                     'validator': RasterToNetCDFRequestValidator
-                },
+                  },
 
           'delineatewatershed':
                 {
@@ -529,11 +530,15 @@ def create_hydroshare_resource(request):
         payload['abstract'] = abstract
 
     if keywords:
-        payload['keywords'] = keywords
+        for (i, kw) in enumerate(keywords):
+                key = "keywords[{index}]".format(index=i)
+                payload[key] = kw
+
 
     user_folder = 'user_%s' % request.user.id
     source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
     files = {'file': open(source_file_path, 'rb')}
+
     # create a resource in HydroShare
     response = requests.post(hs_url+'/?format=json', data=payload, files=files, auth=hydroshare_auth)
 

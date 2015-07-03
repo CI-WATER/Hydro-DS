@@ -114,7 +114,9 @@ class CreateOutletShapeRequestValidator(serializers.Serializer):
 
 class RasterToNetCDFRequestValidator(InputRasterRequestValidator):
     output_netcdf = serializers.CharField(required=False)
-
+    increasing_x = serializers.BooleanField(required=False)
+    increasing_y = serializers.BooleanField(required=False)
+    output_varname = serializers.CharField(required=False)
 
 class ComputeRasterAspectRequestValidator(InputRasterRequestValidator):
     output_raster = serializers.CharField(required=False)
@@ -289,10 +291,6 @@ class ZipMyFilesRequestValidator(serializers.Serializer):
         return value
 
 
-class StringListField(serializers.ListField):
-    child = serializers.CharField()
-
-
 class HydroShareCreateResourceRequestValidator(serializers.Serializer):
     hs_username = serializers.CharField(min_length=1, required=True)
     hs_password = serializers.CharField(min_length=1, required=True)
@@ -300,8 +298,14 @@ class HydroShareCreateResourceRequestValidator(serializers.Serializer):
     resource_type = serializers.CharField(min_length=5, required=True)
     title = serializers.CharField(min_length=5, max_length=200, required=False)
     abstract = serializers.CharField(min_length=5, required=False)
-    keywords = StringListField(required=False)
+    keywords = serializers.CharField(required=False)
 
+    def validate_keywords(self, value):
+        if value:
+            kws = value.split(',')
+            if len(kws) == 0:
+                raise serializers.ValidationError("%s must be a comma separated string" % value)
+            return kws
 
 class DownloadStreamflowRequestValidator(serializers.Serializer):
     USGS_gage = serializers.CharField(required=True)

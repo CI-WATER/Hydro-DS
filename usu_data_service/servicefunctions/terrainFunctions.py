@@ -16,6 +16,7 @@ from gdalconst import *
 #import subprocess
 import os
 from . watershedFunctions import create_OutletShape
+from . netcdfFunctions import reverse_netCDF_yaxis_and_rename_variable
 from usu_data_service.utils import *
 from .utils import *
 
@@ -33,9 +34,30 @@ def get_raster_subset(input_raster=None, output_raster=None, xmin=None, ymax=Non
     return call_subprocess(cmdString,'get raster subset')
 
 
-def rasterToNetCDF(input_raster=None, output_netcdf=None):
-    cmdString = "gdal_translate -of netCDF "+input_raster+" "+output_netcdf
-    return call_subprocess(cmdString, 'raster to netcdf')
+def rasterToNetCDF(input_raster=None, output_netcdf=None, increasing_x=False, increasing_y=False, output_varname='Band1'):
+    if not increasing_y:
+        temp_netcdf = os.path.join(os.path.dirname(input_raster), 'temp.nc')
+        cmdString = "gdal_translate -of netCDF "+input_raster+" "+temp_netcdf
+        retDictionary = call_subprocess(cmdString, 'raster to netcdf')
+        if retDictionary['success']== "False":
+            return retDictionary
+
+        retDictionary= reverse_netCDF_yaxis_and_rename_variable(input_netcdf=temp_netcdf, output_netcdf=output_netcdf,
+                                                 input_varname='Band1', output_varname=output_varname)
+        if retDictionary['success'] == "False":
+            return retDictionary
+    else:
+        cmdString = "gdal_translate -of netCDF "+input_raster+" "+output_netcdf
+        retDictionary = call_subprocess(cmdString, 'raster to netcdf')
+        if retDictionary['success']== "False":
+            return retDictionary
+
+
+    # TODO: implement later
+    if not increasing_x:
+        pass
+
+    return retDictionary
 
 def project_shapefile_UTM_NAD83(input_shape_file, output_shape_file, utm_zone):
     """ This projection tested for when the source shape file is in WGS84 Geographic
