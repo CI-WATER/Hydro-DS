@@ -75,15 +75,15 @@ def project_shapefile_EPSG(input_shape_file, output_shape_file, epsg_code):
     cmdString = "ogr2ogr -t_srs EPSG:"+str(epsg_code)+" "+output_shape_file+" "+input_shape_file
     return call_subprocess(cmdString, "Project Shape File")
 
-def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletPointY=None, output_raster=None,
-                               output_outlet_shapefile=None, epsgCode=None, streamThreshold=None):
+def delineate_Watershed_TauDEM(input_DEM_raster=None, outlet_point_x=None, outlet_point_y=None, output_raster=None,
+                               output_outlet_shapefile=None, epsg_code=None, stream_threshold=None):
     """TauDEM doesn't take compressed file; uncompress file
         ToDO:  Check compression first"""
 
     input_Outlet_shpFile_uuid_path = generate_uuid_file_path()
 
-    response_dict = create_OutletShape(shapefilePath=input_Outlet_shpFile_uuid_path, outletPointX=outletPointX,
-                                       outletPointY=outletPointY)
+    response_dict = create_OutletShape(shapefilePath=input_Outlet_shpFile_uuid_path, outletPointX=outlet_point_x,
+                                       outletPointY=outlet_point_y)
 
     if response_dict['success'] == 'False':
         return response_dict
@@ -91,7 +91,7 @@ def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletP
     input_Outlet_shpFile = os.path.join(input_Outlet_shpFile_uuid_path, 'outlet', 'outlet.shp')
     input_proj_shape_file = os.path.join(input_Outlet_shpFile_uuid_path, 'outlet', 'outlet-proj.shp')
 
-    response_dict = project_shapefile_EPSG(input_shape_file=input_Outlet_shpFile, epsg_code=epsgCode,
+    response_dict = project_shapefile_EPSG(input_shape_file=input_Outlet_shpFile, epsg_code=epsg_code,
                                            output_shape_file=input_proj_shape_file)
     if response_dict['success'] == 'False':
         return response_dict
@@ -125,7 +125,7 @@ def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletP
     #Get statistics of ad8 file to determine threshold
 
     #Stream definition by threshold
-    cmdString = "threshold -ssa "+input_raster+"ad8.tif -src "+input_raster+"src.tif -thresh "+str(streamThreshold)
+    cmdString = "threshold -ssa "+input_raster+"ad8.tif -src "+input_raster+"src.tif -thresh "+str(stream_threshold)
     retDictionary = call_subprocess(cmdString, 'Stream definition by threshold')
     if retDictionary['success']=="False":
         return retDictionary
@@ -147,7 +147,7 @@ def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletP
 
     #srsString = "+proj=utm +zone="+str(utmZone)+" +ellps=GRS80 +datum=NAD83 +units=m"
     srs = osr.SpatialReference()
-    srs.ImportFromEPSG(epsgCode)
+    srs.ImportFromEPSG(epsg_code)
 
     #srs.ImportFromEPSG(4326)
     #srs.ImportFromProj4(srsString)
@@ -171,8 +171,8 @@ def delineate_Watershed_TauDEM(input_DEM_raster=None, outletPointX=None, outletP
     #       Direct TauDEM messages to file
 
 
-def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, output_raster,
-                                       output_outlet_shapefile, streamThreshold):
+def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, output_raster, output_outlet_shapefile,
+                                    stream_threshold):
     """TauDEM doesn't take compressed file; uncompress file
         ToDO:  Check compression first"""
     temp_raster = 'temp.tif'
@@ -204,7 +204,7 @@ def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, ou
     #Get statistics of ad8 file to determine threshold
 
     #Stream definition by threshold
-    cmdString = "threshold -ssa "+input_raster+"ad8.tif -src "+input_raster+"src.tif -thresh "+str(streamThreshold)
+    cmdString = "threshold -ssa "+input_raster+"ad8.tif -src "+input_raster+"src.tif -thresh "+str(stream_threshold)
     retDictionary = call_subprocess(cmdString, 'Stream definition by threshold')
     if retDictionary['success']=="False":
         return retDictionary

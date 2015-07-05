@@ -75,22 +75,22 @@ funcs = {
                     'validator': RasterToNetCDFRequestValidator
                   },
 
-          'delineatewatershed':
+          'delineatewatershedatxy':
                 {
                     'function_to_execute': delineate_Watershed_TauDEM,
                     'file_inputs': [],
                     'file_outputs': [{'output_raster': 'watershed.tif'}, {'output_outlet_shapefile': 'moveout.shp'}],
-                    'user_inputs': ['epsgCode', 'streamThreshold', 'outletPointX', 'outletPointY'],
+                    'user_inputs': ['epsg_code', 'stream_threshold', 'outlet_point_x', 'outlet_point_y'],
                     'user_file_inputs': ['input_DEM_raster'],
-                    'validator': DelineateWatershedRequestValidator
+                    'validator': DelineateWatershedAtXYRequestValidator
                 },
 
-          'delineatewatershedatshapefile':
+          'delineatewatershedatshape':
                 {
                     'function_to_execute': delineate_Watershed_atShapeFile,
                     'file_inputs': [],
                     'file_outputs': [{'output_raster': 'watershed.tif'}, {'output_outlet_shapefile': 'moveout.shp'}],
-                    'user_inputs': ['streamThreshold'],
+                    'user_inputs': ['stream_threshold'],
                     'user_file_inputs': ['input_DEM_raster', 'input_outlet_shapefile'],
                     'validator': DelineateWatershedAtShapeFileRequestValidator
                 },

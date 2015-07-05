@@ -72,18 +72,18 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
-class DelineateWatershedRequestValidator(serializers.Serializer):
-    outletPointX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    outletPointY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    epsgCode = serializers.IntegerField(required=True)
-    streamThreshold = serializers.IntegerField(required=True)
+class DelineateWatershedAtXYRequestValidator(serializers.Serializer):
+    outlet_point_x = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    outlet_point_y = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    epsg_code = serializers.IntegerField(required=True)
+    stream_threshold = serializers.IntegerField(required=True)
     input_DEM_raster = serializers.URLField(required=True)
     output_raster = serializers.CharField(required=True)
     output_outlet_shapefile = serializers.CharField(required=True)
 
 
 class DelineateWatershedAtShapeFileRequestValidator(serializers.Serializer):
-    streamThreshold = serializers.IntegerField(required=True)
+    stream_threshold = serializers.IntegerField(required=True)
     input_DEM_raster = serializers.URLField(required=True)
     input_outlet_shapefile = serializers.URLField(required=True)
     output_raster = serializers.CharField(required=True)
