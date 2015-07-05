@@ -18,13 +18,14 @@ from usu_data_service.serializers import *
 from usu_data_service.models import *
 from usu_data_service.utils import *
 from usu_data_service.local_settings import *
+from usu_data_service.capabilities import *
 
 WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.tif')
 
 logger = logging.getLogger(__name__)
 
 funcs = {
-          'rastersubset':
+          'subsetrastertobbox':
                 {
                     'function_to_execute': get_raster_subset,
                     'file_inputs': [],
@@ -432,6 +433,21 @@ class RunService(APIView):
 
         return Response(data=response_data)
 
+
+@api_view(['GET'])
+def show_capabilities(request):
+    data = get_capabilites()
+    response_data = {'success': True, 'data': data, 'error': []}
+    return Response(data=response_data)
+
+
+@api_view(['GET'])
+def show_service_info(request, func):
+    data = get_service_info(service_name=func)
+    if data is None:
+        raise DRF_ValidationError("%s is not a supported service name" % func)
+    response_data = {'success': True, 'data': data, 'error': []}
+    return Response(data=response_data)
 
 @api_view(['GET'])
 def show_static_data_info(request):
