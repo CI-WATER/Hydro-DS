@@ -30,6 +30,8 @@ NOTE: Detail description of available web services is coming soon.
 - List available data sources
 
 ## Other supporting services:
+- List available services
+- Show information on a specific service
 - Upload a file
 - Download a file
 - Delete a file
