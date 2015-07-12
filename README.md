@@ -1,9 +1,8 @@
 # Hydro-DS
 Web based services for hydrological data processing.
 
-NOTE: Detail description of available web services is coming soon.
 ## The following data/computing web services are supported:
-- Subset DEM (based on bounding box)
+- Subset raster by bounding box
 - Subset raster to reference raster
 - Subset NetCDF to reference raster
 - Subset NetCDF by time dimension 
@@ -51,3 +50,5 @@ NOTE: Detail description of available web services is coming soon.
     - Vapor pressure (Pa)
     - Solar radiation (W/m^2)
 - NLDAS climate data (accessed through web services not stored locally)
+
+## [Web API Description](https://github.com/CI-WATER/Hydro-DS/wiki/HydroDS-Web-API-Description)
