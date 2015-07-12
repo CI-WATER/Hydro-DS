@@ -289,8 +289,16 @@ def resample_Raster(input_raster, output_raster, dx, dy, resample='near'):
           For images leave the default nearest neighbor interpolation;
           else pass the method required, e.g 'bilinear'
     """
+    ref_data = gdal.Open(input_raster, GA_ReadOnly)
+    # if not ref_data:
+    #     return response_dict
+
+    inband = ref_data.GetRasterBand(1)
+    nodata = inband.GetNoDataValue()
+    ref_data = None
+
     cmdString = "gdalwarp -tr "+str(dx)+" "+str(dy)+" -r "+resample+" -overwrite "+\
-                 input_raster +" "+ output_raster
+                 " -srcnodata " + str(nodata) + " -dstnodata " + str(nodata) + " " + input_raster +" "+ output_raster
     return call_subprocess(cmdString, "re-grid raster")
     #Delete temp file
 

@@ -11,7 +11,7 @@ urlpatterns = patterns('',
   url(r'^api/dataservice/myfiles/upload', views.upload_file),
   url(r'^api/dataservice/myfiles/zip', views.zip_my_files),
   url(r'^api/dataservice/hydroshare/createresource', views.create_hydroshare_resource),
-  url(r'^api/dataservice/capabilities/show', views.show_capabilities),
+  url(r'^api/dataservice/capabilities/list', views.show_capabilities),
   url(r'^api/dataservice/info/(?P<func>[A-z0-9]+)$', views.show_service_info),
 )
  

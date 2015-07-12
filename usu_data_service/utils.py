@@ -62,9 +62,9 @@ def zip_user_files(user, file_name_list, zip_file_name):
     for file_name in file_name_list:
         source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
         if not os.path.isfile(source_file_path):
-            raise DRF_ValidationError(detail={'file_name_list': "{file_name} was not found.".format(file_name)})
+            raise DRF_ValidationError(detail={'file_name_list': "{file_name} was not found.".format(file_name=file_name)})
 
-    logger.debug("copying file to working directory:{w_dir}".format(w_dir=uuid_file_path))
+    logger.debug("copying file to working directory for zipping:{w_dir}".format(w_dir=uuid_file_path))
     for file_name in file_name_list:
         source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
         destination_file_path = os.path.join(uuid_file_path, file_name)

@@ -112,11 +112,15 @@ class CreateOutletShapeRequestValidator(serializers.Serializer):
     output_shape_file_name = serializers.CharField(required=False)
 
 
-class RasterToNetCDFRequestValidator(InputRasterRequestValidator):
+class RasterToNetCDFVariableRequestValidator(InputRasterRequestValidator):
     output_netcdf = serializers.CharField(required=False)
     increasing_x = serializers.BooleanField(required=False)
     increasing_y = serializers.BooleanField(required=False)
     output_varname = serializers.CharField(required=False)
+
+class RasterToNetCDFRequestValidator(InputRasterRequestValidator):
+    output_netcdf = serializers.CharField(required=False)
+
 
 class ComputeRasterAspectRequestValidator(InputRasterRequestValidator):
     output_raster = serializers.CharField(required=False)
@@ -142,6 +146,9 @@ class ReverseNetCDFYaxisAndRenameVariableRequestValidator(ReverseNetCDFYaxisRequ
     input_varname = serializers.CharField(required=False)
     output_varname = serializers.CharField(required=False)
 
+
+class NetCDFRenameVariableRequestValidator(ReverseNetCDFYaxisAndRenameVariableRequestValidator):
+    pass
 
 class ProjectRasterRequestValidator(InputRasterRequestValidator):
     utmZone = serializers.IntegerField(required=True)

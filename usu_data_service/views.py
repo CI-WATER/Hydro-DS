@@ -66,12 +66,22 @@ funcs = {
                 },
 
 
+          'rastertonetcdfrenamevariable':
+                {
+                    'function_to_execute': rasterToNetCDF_rename_variable,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'output.nc'}],
+                    'user_inputs': ['increasing_x', 'increasing_y', 'output_varname'],
+                    'user_file_inputs': ['input_raster'],
+                    'validator': RasterToNetCDFVariableRequestValidator
+                  },
+
           'rastertonetcdf':
                 {
                     'function_to_execute': rasterToNetCDF,
                     'file_inputs': [],
                     'file_outputs': [{'output_netcdf': 'output.nc'}],
-                    'user_inputs': ['increasing_x', 'increasing_y', 'output_varname'],
+                    'user_inputs': [],
                     'user_file_inputs': ['input_raster'],
                     'validator': RasterToNetCDFRequestValidator
                   },
@@ -224,6 +234,16 @@ funcs = {
                    'user_inputs': ['input_varname', 'output_varname'],
                    'user_file_inputs': ['input_netcdf'],
                    'validator': ReverseNetCDFYaxisAndRenameVariableRequestValidator
+                },
+
+          'netcdfrenamevariable':
+                {
+                   'function_to_execute': netCDF_rename_variable,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'rename_varname.nc'}],
+                   'user_inputs': ['input_varname', 'output_varname'],
+                   'user_file_inputs': ['input_netcdf'],
+                   'validator': NetCDFRenameVariableRequestValidator
                 },
 
           'subsetnetcdftoreference':

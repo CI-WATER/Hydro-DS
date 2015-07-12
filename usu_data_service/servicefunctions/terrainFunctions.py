@@ -34,7 +34,7 @@ def get_raster_subset(input_raster=None, output_raster=None, xmin=None, ymax=Non
     return call_subprocess(cmdString,'get raster subset')
 
 
-def rasterToNetCDF(input_raster=None, output_netcdf=None, increasing_x=False, increasing_y=False, output_varname='Band1'):
+def rasterToNetCDF_rename_variable(input_raster=None, output_netcdf=None, increasing_x=False, increasing_y=False, output_varname='Band1'):
     if not increasing_y:
         temp_netcdf = os.path.join(os.path.dirname(input_raster), 'temp.nc')
         cmdString = "gdal_translate -of netCDF "+input_raster+" "+temp_netcdf
@@ -58,6 +58,11 @@ def rasterToNetCDF(input_raster=None, output_netcdf=None, increasing_x=False, in
         pass
 
     return retDictionary
+
+
+def rasterToNetCDF(input_raster, output_netcdf):
+    cmdString = "gdal_translate -of netCDF -co \"FORMAT=NC4\" " + input_raster + " " + output_netcdf
+    return call_subprocess(cmdString, 'raster to netcdf')
 
 def project_shapefile_UTM_NAD83(input_shape_file, output_shape_file, utm_zone):
     """ This projection tested for when the source shape file is in WGS84 Geographic

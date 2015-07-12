@@ -152,13 +152,13 @@ def project_subset_and_resample_netcdf_to_reference_netcdf(input_netcdf, referen
     varin = numpy.zeros((len(yin),len(xin)),dtype=vardataType)
     varout = numpy.zeros((len(yout),len(xout)),dtype=vardataType)
     timeLen = len(ncIn.dimensions['time'])
-    yLen = len(yout)
-    xLen = len(xout)
+    #yLen = len(yout)
+    #xLen = len(xout)
     for tk in range(timeLen):
         varin[:,:] = ncIn.variables[variable_name][tk,:,:]
         #Because gdal tif and Daymet nc y axes directions differ, here array is reversed
-        varin_rev = varin[::-1]
-        varout[:,:] = project_and_resample_Array(varin_rev, srs_geotrs, srs_proj, Nxin, Nyin, reference_netcdf)
+        #varin_rev = varin[::-1]
+        varout[:,:] = project_and_resample_Array(varin, srs_geotrs, srs_proj, Nxin, Nyin, reference_netcdf)
         ncOut.variables[variable_name][tk,:,:] = varout[:,:]
     ncIn.close()
     ncOut.close()
@@ -412,6 +412,87 @@ def reverse_netCDF_yaxis_and_rename_variable(input_netcdf, output_netcdf, input_
     response_dict['message'] = 'reversing of netcdf y-axis was successful'
     return response_dict
 
+
+def netCDF_rename_variable(input_netcdf, output_netcdf, input_varname='Band1', output_varname='Band1'):
+    """
+    """
+    response_dict = {'success': "False", 'message': "failed to rename variable"}
+    try:
+        ncIn = netCDF4.Dataset(input_netcdf,"r") # format='NETCDF4')
+        xin = ncIn.variables['x'][:]
+        yin = ncIn.variables['y'][:]
+
+        ncOut = netCDF4.Dataset(output_netcdf,"w", format='NETCDF4')
+        ncOut.createDimension('y',len(yin))
+        ncOut.createDimension('x', len(xin))
+
+        dataType = ncIn.variables['x'].datatype
+        if input_varname not in ncIn.variables:
+            response_dict['message'] = 'reversing of netcdf y-axis and renaming variable failed. input variable ' \
+                                       'does not exist in input netcdf file'
+            return response_dict
+
+        vardataType = ncIn.variables[input_varname].datatype
+
+        ncOut.createVariable('y',dataType,('y',))
+        ncOut.createVariable('x',dataType,('x',))
+        ncOut.variables['y'][:] = yin[:]
+        ncOut.variables['x'][:] = xin[:]
+        ncOut.createVariable(output_varname,vardataType,('y','x',))
+
+        #Copy attributes
+        varAtts = ncIn.ncattrs()
+        attDict = dict.fromkeys(varAtts)
+
+        for attName in varAtts:
+            attDict[attName] = getattr(ncIn,attName)
+
+        ncOut.setncatts(attDict)
+        #variable
+        varAtts = ncIn.variables[input_varname].ncattrs()
+        attDict = dict.fromkeys(varAtts)
+
+        for attName in varAtts:
+            attDict[attName] = getattr(ncIn.variables[input_varname],attName)
+        ncOut.variables[output_varname].setncatts(attDict)
+
+        #grid mapping var
+        gridMapping = attDict['grid_mapping']
+        ncOut.createVariable(gridMapping,'c',())
+        varAtts = ncIn.variables[gridMapping].ncattrs()
+        attDict = dict.fromkeys(varAtts)
+
+        for attName in varAtts:
+            attDict[attName] = getattr(ncIn.variables[gridMapping],attName)
+
+        ncOut.variables[gridMapping].setncatts(attDict)
+        ncOut.variables[gridMapping].setncatts(attDict)
+        #dim variables
+        xAtts = ncIn.variables['x'].ncattrs()
+        attDict = dict.fromkeys(xAtts)
+
+        for attName in xAtts:
+            attDict[attName] = getattr(ncIn.variables['x'],attName)
+
+        ncOut.variables['x'].setncatts(attDict)
+        yAtts = ncIn.variables['y'].ncattrs()
+        attDict = dict.fromkeys(yAtts)
+
+        for attName in yAtts:
+            attDict[attName] = getattr(ncIn.variables['y'],attName)
+        ncOut.variables['y'].setncatts(attDict)
+        array = ncIn.variables[input_varname][:]
+        ncOut.variables[output_varname][:] = array[:]
+
+        ncIn.close()
+        ncOut.close()
+    except:
+        response_dict['message'] = 'renaming variable failed'
+        return response_dict
+
+    response_dict['success'] = 'True'
+    response_dict['message'] = 'rename variable was successful'
+    return response_dict
 
 """
 resample_netCDF_to_referenceNetCDF('SpawnProj_2010.nc','Spawn17.nc','prcp','Res2.nc')
