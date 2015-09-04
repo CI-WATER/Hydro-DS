@@ -180,10 +180,10 @@ def _get_json_response_format(data_dict):
 
 
 def _get_service_info_url(service_name):
-    return "http://hydro-ds.uwrl.usu.edu:20199/api/dataservice/info/{service_name}".format(service_name=service_name)
+    return "http://hydro-ds.uwrl.usu.edu/api/dataservice/info/{service_name}".format(service_name=service_name)
 
 def _get_end_point(url_sub_path):
-    return "http://hydro-ds.uwrl.usu.edu:20199/api/dataservice/{url_sub_path}".format(url_sub_path=url_sub_path)
+    return "http://hydro-ds.uwrl.usu.edu/api/dataservice/{url_sub_path}".format(url_sub_path=url_sub_path)
 
 def _get_capability_dict(service_name, description):
     return {'service_name': service_name, 'description': description,

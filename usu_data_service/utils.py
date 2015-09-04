@@ -182,7 +182,7 @@ def current_site_url():
     #from django.contrib.sites.models import Site
     current_site = 'hydro-ds.uwrl.usu.edu'
     protocol = getattr(settings, 'MY_SITE_PROTOCOL', 'http')
-    port = getattr(settings, 'MY_SITE_PORT', '20199')
+    port = getattr(settings, 'MY_SITE_PORT', None)
     url = '%s://%s' % (protocol, current_site)
     if port:
         url += ':%s' % port

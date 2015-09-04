@@ -319,3 +319,19 @@ class DownloadStreamflowRequestValidator(serializers.Serializer):
     Start_Year = serializers.IntegerField(required=True)
     End_Year = serializers.IntegerField(required=True)
     output_streamflow = serializers.CharField(required=False)
+
+
+class GetHydrogateResultFileRequestValidator(serializers.Serializer):
+    result_file_name = serializers.CharField(min_length=10, required=True)
+    save_as_file_name = serializers.CharField(min_length=5, required=True)
+
+    def validate_result_file_name(self, value):
+        if not value.endswith('.zip'):
+            raise serializers.ValidationError("%s must be a file name ending with .zip" % 'result_file_name')
+        return value
+
+    def validate_save_as_file_name(self, value):
+        if not value.endswith('.zip'):
+            raise serializers.ValidationError("%s must be a file name ending with .zip" % 'save_as_file_name')
+
+        return value

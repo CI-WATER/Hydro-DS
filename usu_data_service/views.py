@@ -498,6 +498,42 @@ def upload_file(request):
     response_data = {'success': True, 'data': file_url, 'error': []}
     return Response(data=response_data)
 
+@api_view(['GET'])
+def get_hydrogate_result_file(request):
+    if not request.user.is_authenticated():
+        raise NotAuthenticated()
+
+    request_validator = GetHydrogateResultFileRequestValidator(data=request.query_params)
+    if not request_validator.is_valid():
+            raise DRF_ValidationError(detail=request_validator.errors)
+
+    hydrogate_result_file_name = request_validator.validated_data['result_file_name']
+    save_as_file_name = request_validator.validated_data['save_as_file_name']
+    hg_download_file_url_path = 'http://129.123.41.158:20198/{file_name}'.format(file_name=hydrogate_result_file_name)
+    uuid_file_path = generate_uuid_file_path()
+    save_as = os.path.join(uuid_file_path, save_as_file_name)
+    with open(save_as, 'wb') as file_obj:
+        response = requests.get(hg_download_file_url_path, stream=True)
+        if not response.ok:
+            # Something went wrong
+            error_msg = 'Hydrogate error. ' + response.reason + " " + response.content
+            response_data = {'success': False, 'data': [], 'error': [error_msg]}
+            return Response(data=response_data)
+
+        for block in response.iter_content(1024):
+            if not block:
+                break
+            file_obj.write(block)
+
+    delete_user_file(request.user, save_as_file_name)
+    user_file = UserFile(file=File(open(save_as, 'rb')), user=request.user)
+    user_file.save()
+    file_url = current_site_url() + user_file.file.url.replace('/static/media/', '/files/')
+    response_data = {'success': True, 'data': file_url, 'error': []}
+    logger.debug('django file url for the hydrogate result file:' + user_file.file.url)
+    delete_working_uuid_directory(uuid_file_path)
+    return Response(data=response_data)
+
 
 @api_view(['GET'])
 def show_my_files(request):
