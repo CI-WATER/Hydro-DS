@@ -594,7 +594,7 @@ def create_hydroshare_resource(request):
     else:
         raise NotFound()
 
-    hs_url = 'http://www.hydroshare.org/hsapi/resource'
+    hs_url = 'https://www.hydroshare.org/hsapi/resource'
     payload = {'resource_type': resource_type}
     if title:
         payload['title'] = title
