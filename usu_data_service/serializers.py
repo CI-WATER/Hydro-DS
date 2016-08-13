@@ -1,5 +1,7 @@
 __author__ = 'pkdash'
 
+import json
+
 from django.core.exceptions import ValidationError
 
 from rest_framework import serializers
@@ -306,6 +308,7 @@ class HydroShareCreateResourceRequestValidator(serializers.Serializer):
     title = serializers.CharField(min_length=5, max_length=200, required=False)
     abstract = serializers.CharField(min_length=5, required=False)
     keywords = serializers.CharField(required=False)
+    metadata = serializers.CharField(required=False)
 
     def validate_keywords(self, value):
         if value:
@@ -313,6 +316,15 @@ class HydroShareCreateResourceRequestValidator(serializers.Serializer):
             if len(kws) == 0:
                 raise serializers.ValidationError("%s must be a comma separated string" % value)
             return kws
+
+    def validate_metadata(self, value):
+        if value:
+            try:
+                json.loads(value)
+            except Exception:
+                raise serializers.ValidationError("%s must be a valid json string" % value)
+
+        return value
 
 class DownloadStreamflowRequestValidator(serializers.Serializer):
     USGS_gage = serializers.CharField(required=True)

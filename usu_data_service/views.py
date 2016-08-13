@@ -587,6 +587,7 @@ def create_hydroshare_resource(request):
     title = request_validator.validated_data.get('title', None)
     abstract = request_validator.validated_data.get('abstract', None)
     keywords = request_validator.validated_data.get('keywords', None)
+    metadata = request_validator.validated_data.get('metadata', None)
 
     for user_file in UserFile.objects.filter(user=request.user).all():
         if user_file.file.name.split('/')[2] == file_name:
@@ -596,8 +597,10 @@ def create_hydroshare_resource(request):
 
     hs_url = 'https://www.hydroshare.org/hsapi/resource'
     payload = {'resource_type': resource_type}
+
     if title:
         payload['title'] = title
+
     if abstract:
         payload['abstract'] = abstract
 
@@ -606,6 +609,8 @@ def create_hydroshare_resource(request):
                 key = "keywords[{index}]".format(index=i)
                 payload[key] = kw
 
+    if metadata:
+        payload['metadata'] = metadata
 
     user_folder = 'user_%s' % request.user.id
     source_file_path = os.path.join(settings.MEDIA_ROOT, 'data', user_folder, file_name)
