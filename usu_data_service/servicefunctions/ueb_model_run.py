@@ -73,77 +73,85 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
             return {'success': 'False', 'message': validation['result'] }
         else:
             # copy ueb executable
-            ueb_exe_path = r'/home/jamy/ueb/UEBGrid_Parallel_Linuxp/ueb'  #TODO find out the ueb file path
+            ueb_exe_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/ueb'  #TODO find out the ueb file path
             shutil.copy(ueb_exe_path, model_input_folder)
 
             # run ueb model
-            process = subprocess.Popen(['./ueb', 'control.dat'], stdout=subprocess.PIPE,
+            try:
+                process = subprocess.Popen(['./ueb', 'control.dat'], stdout=subprocess.PIPE,
                                        cwd=model_input_folder).wait()
 
-            # check simulation result
-            if process != 0:
+                # process = subprocess.Popen(['echo', 'jamy'], cwd=model_input_folder).wait()
+
+                # check simulation result
+                if process != 0:
+                    delete_working_uuid_directory(uuid_file_path)
+                    return {'success': 'False', 'message': 'failed to execute ueb model process fail'}
+                else:
+                    # get point output file
+                    output_file_name_list = []
+                    model_param_files_dict = validation['result']
+                    point_index = 1
+                    output_control_contents = model_param_files_dict['output_file']['file_contents']
+                    point_num = int(output_control_contents[point_index].split(' ')[0])
+
+                    if point_num != 0:
+                        for i in range(point_index + 1, point_index + 1 + point_num):
+                            output_file_name_list.append(output_control_contents[i].split(' ')[2])
+
+                    # get netcdf output file
+                    netcdf_index = point_index + 1 + point_num
+                    netcdf_num = int(output_control_contents[netcdf_index].split(' ')[0])
+
+                    if netcdf_num != 0:
+                        for i in range(netcdf_index + 1, netcdf_index + 1 + netcdf_num):
+                            output_file_name_list.append(output_control_contents[i].split(' ')[1])
+
+                    # get aggregation file
+                    output_file_name_list.append(
+                        model_param_files_dict['control_file']['file_contents'][5].split(' ')[0])
+
+                    # zip all the output files
+                    zip_file_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + 'output_package.zip'
+                    zip_file_path = os.path.join(model_input_folder, zip_file_name)
+                    zf = zipfile.ZipFile(zip_file_path, 'w')
+                    for file_path in [os.path.join(model_input_folder, file_name) for file_name in
+                                      output_file_name_list]:
+                        if os.path.isfile(file_path):
+                            zf.write(file_path, os.path.basename(file_path))
+                    zf.close()
+
+            except Exception as e:
                 delete_working_uuid_directory(uuid_file_path)
-                return {'success': 'False', 'message': 'failed to execute ueb model'}
-            else:
-                # get point output file
-                output_file_name_list = []
-                model_param_files_dict = validation['result']
-                point_index = 1
-                output_control_contents = model_param_files_dict['output_file']['file_contents']
-                point_num = int(output_control_contents[point_index].split(' ')[0])
+                return {'success': "False", 'message': 'failed to execute ueb model'}
 
-                if point_num != 0:
-                    for i in range(point_index + 1, point_index + 1 + point_num):
-                        output_file_name_list.append(output_control_contents[i].split(' ')[2])
+            # Share the output in HydroShare
+            os.chdir(model_input_folder)
+            try:
+                resource_id = hs.addResourceFile(resource_id, zip_file_name)
+                res_creation = True
+            except Exception:
+                res_creation = False
 
-                # get netcdf output file
-                netcdf_index = point_index + 1 + point_num
-                netcdf_num = int(output_control_contents[netcdf_index].split(' ')[0])
-
-                if netcdf_num != 0:
-                    for i in range(netcdf_index + 1, netcdf_index + 1 + netcdf_num):
-                        output_file_name_list.append(output_control_contents[i].split(' ')[1])
-
-                # get aggregation file
-                output_file_name_list.append(
-                    model_param_files_dict['control_file']['file_contents'][5].split(' ')[0])
-
-                # zip all the output files
-                zip_file_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + 'output_package.zip'
-                zip_file_path = os.path.join(model_input_folder, zip_file_name)
-                zf = zipfile.ZipFile(zip_file_path, 'w')
-                for file_path in [os.path.join(model_input_folder, file_name) for file_name in
-                                  output_file_name_list]:
-                    if os.path.isfile(file_path):
-                        zf.write(file_path, os.path.basename(file_path))
-                zf.close()
-
-                # Share the output in HydroShare
+            if not res_creation:
                 try:
-                    res_list = [res['resource_id'] for res in
-                                hs.getResourceList(owner=hs_username, types=["ModelInstanceResource"])]
-                    current_dir = os.getcwd()
-                    os.chdir(model_input_folder)
-                    if resource_id in res_list:
-                        resource_id = hs.addResourceFile(resource_id, zip_file_name)
-                    else:
-                        rtype = 'ModelInstanceResource'
-                        title = 'UEB model simulation output'
-                        abstract = 'This resource includes the UEB model simulation output files derived from the model' \
-                                   'instance package http://www.hydroshare.org/resource/{}. The model simulation was conducted ' \
-                                   'using the UEB web application http://localhost:8000/apps/ueb-app'.format(resource_id)
-                        keywords = ('UEB', 'Snowmelt simulation')
-                        metadata = [
-                            {"source": {'derived_from': 'http://www.hydroshare.org/resource/{}'.format(resource_id)}}]
-                        resource_id = hs.createResource(rtype, title, resource_file=zip_file_name, keywords=keywords,
-                                                        abstract=abstract, metadata=json.dumps(metadata))
-                    os.chdir(current_dir)
+                    rtype = 'ModelInstanceResource'
+                    title = 'UEB model simulation output'
+                    abstract = 'This resource includes the UEB model simulation output files derived from the model' \
+                               'instance package http://www.hydroshare.org/resource/{}. The model simulation was conducted ' \
+                               'using the UEB web application http://localhost:8000/apps/ueb-app'.format(resource_id)
+                    keywords = ('UEB', 'Snowmelt simulation')
+                    metadata = [
+                        {"source": {'derived_from': 'http://www.hydroshare.org/resource/{}'.format(resource_id)}}]
+
+                    resource_id = hs.createResource(rtype, title, resource_file=zip_file_name, keywords=keywords,
+                                                    abstract=abstract, metadata=json.dumps(metadata))
 
                 except Exception:
                     delete_working_uuid_directory(uuid_file_path)
                     return {'success': "False", 'message': 'Failed to share the model outputs in HydroShare.'}
 
-                delete_working_uuid_directory(uuid_file_path)
+            delete_working_uuid_directory(uuid_file_path)
 
     return {'success': 'True',
             'message': 'Please check resource http://www.hydroshare.org/resource/{}'.format(resource_id)}
