@@ -20,6 +20,8 @@ from usu_data_service.utils import *
 from usu_data_service.local_settings import *
 from usu_data_service.capabilities import *
 
+from usu_data_service.servicefunctions.ueb_model_run import run_ueb_model
+
 WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.tif')
 
 logger = logging.getLogger(__name__)
@@ -358,7 +360,20 @@ funcs = {
                    'validator': DownloadStreamflowRequestValidator
                 },
 
-         }
+          # run ueb model with HydroShare resource
+          'runuebmodel':
+                {
+                   'function_to_execute': run_ueb_model,
+                   'file_inputs': [],
+                   'file_outputs': [],
+                   'user_inputs': ['resource_id', 'hs_username', 'hs_password', 'hs_client_id','hs_client_secret',
+                                   'token'],
+                   'user_file_inputs': [],
+                   'validator': RunUebModelValidator
+                }
+
+        }
+
 
 
 class RunService(APIView):
@@ -413,7 +428,7 @@ class RunService(APIView):
                 output_files[param_name] = subprocparams[param_name]
 
         for p in params['user_inputs']:
-            subprocparams[p] = request_validator.validated_data[p]
+            subprocparams[p] = request_validator.validated_data.get(p)
 
         # user input file can come as a url file path or just a file name
         # comes in url format for files that are stored for the user in django, copy the file to uuid temp folder
@@ -440,12 +455,15 @@ class RunService(APIView):
         result = params['function_to_execute'](**subprocparams)
         logger.debug('result from function ({function_name}):{result}'.format(function_name=func, result=result))
 
-        # process function output results
+        # process function output results  # TODO remove this
         data = []
         if result['success'] == 'True':
             user = request.user if request.user.is_authenticated() else None
-            data = _save_output_files_in_django(output_files, user=user)
-            response_data = {'success': True, 'data': data, 'error': []}
+            if func == 'runuebmodel':
+                response_data = {'success': True, 'data': {'info':result['message']}, 'error': []}
+            else:
+                data = _save_output_files_in_django(output_files, user=user)
+                response_data = {'success': True, 'data': data, 'error': []}
         else:
             response_data = {'success': False, 'data': data, 'error': result['message']}
 
@@ -675,6 +693,3 @@ def _save_output_files_in_django(output_files, user=None):
         logger.debug('django file url for the output file:' + user_file.file.url)
 
     return output_files_in_django
-
-
-

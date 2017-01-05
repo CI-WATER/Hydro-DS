@@ -347,3 +347,12 @@ class GetHydrogateResultFileRequestValidator(serializers.Serializer):
             raise serializers.ValidationError("%s must be a file name ending with .zip" % 'save_as_file_name')
 
         return value
+
+
+class RunUebModelValidator(serializers.Serializer):
+    resource_id = serializers.CharField(min_length=32, required=True)
+    hs_client_id = serializers.CharField(required=False)
+    hs_client_secret = serializers.CharField(required=False)
+    token = serializers.CharField(required=False)
+    hs_username = serializers.CharField(required=False)
+    hs_password = serializers.CharField(required=False)
