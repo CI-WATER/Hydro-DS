@@ -347,3 +347,24 @@ class GetHydrogateResultFileRequestValidator(serializers.Serializer):
             raise serializers.ValidationError("%s must be a file name ending with .zip" % 'save_as_file_name')
 
         return value
+
+
+class CreateUebInputValidator(serializers.Serializer):
+    hs_client_id = serializers.CharField(required=False)
+    hs_client_secret = serializers.CharField(required=False)
+    token = serializers.CharField(required=False)
+    hs_username = serializers.CharField(required=False)
+    hs_password = serializers.CharField(required=False)
+    topY = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    bottomY = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    leftX = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    rightX = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    dx = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    dy = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    epsgCode = serializers.CharField(required=False)
+    resample = serializers.CharField(required=False)
+    lon_outlet = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    lat_outlet = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    streamThreshold = serializers.IntegerField(required=False)
+    dxRes = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)
+    dyRes = serializers.DecimalField(required=False, max_digits=12, decimal_places=8)

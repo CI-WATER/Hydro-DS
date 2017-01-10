@@ -13,6 +13,7 @@ from usu_data_service.servicefunctions.watershedFunctions import *
 from usu_data_service.servicefunctions.netcdfFunctions import *
 from usu_data_service.servicefunctions.canopyFunctions import *
 from usu_data_service.servicefunctions.static_data import *
+from usu_data_service.servicefunctions.ueb_model_input import *
 from usu_data_service.topnet_data_service.TOPNET_Function import CommonLib
 from usu_data_service.serializers import *
 from usu_data_service.models import *
@@ -358,6 +359,27 @@ funcs = {
                    'validator': DownloadStreamflowRequestValidator
                 },
 
+        'downloadstreamflow':
+                {
+                   'function_to_execute': CommonLib.download_streamflow,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_streamflow': 'streamflow_calibration.dat'}],
+                   'user_inputs': ['USGS_gage', 'Start_Year', 'End_Year'],
+                   'user_file_inputs': [],
+                   'validator': DownloadStreamflowRequestValidator
+                },
+        'createuebinput':
+                {
+                   'function_to_execute': create_ueb_input,
+                   'file_inputs': [],
+                   'file_outputs': [],
+                   'user_inputs': ['hs_username', 'hs_password', 'hs_client_id', 'hs_client_secret',
+                                   'token', 'topY', 'bottomY', 'leftX', 'rightX','dx','dy','epsgCode','resample',
+                                   'lon_outlet', 'lat_outlet', 'streamThreshold', 'dxRes', 'dyRes'],
+                   'user_file_inputs': [],
+                   'validator': CreateUebInputValidator
+                }
+
          }
 
 
@@ -413,7 +435,7 @@ class RunService(APIView):
                 output_files[param_name] = subprocparams[param_name]
 
         for p in params['user_inputs']:
-            subprocparams[p] = request_validator.validated_data[p]
+            subprocparams[p] = request_validator.validated_data.get(p)
 
         # user input file can come as a url file path or just a file name
         # comes in url format for files that are stored for the user in django, copy the file to uuid temp folder
@@ -444,8 +466,11 @@ class RunService(APIView):
         data = []
         if result['success'] == 'True':
             user = request.user if request.user.is_authenticated() else None
-            data = _save_output_files_in_django(output_files, user=user)
-            response_data = {'success': True, 'data': data, 'error': []}
+            if func == 'createuebinput':
+                response_data = {'success': True, 'data': {'info': result['message']}, 'error': []}
+            else:
+                data = _save_output_files_in_django(output_files, user=user)
+                response_data = {'success': True, 'data': data, 'error': []}
         else:
             response_data = {'success': False, 'data': data, 'error': result['message']}
 
