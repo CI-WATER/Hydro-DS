@@ -10,10 +10,11 @@ from usu_data_service.utils import generate_uuid_file_path, delete_working_uuid_
 from usu_data_service.servicefunctions.model_parameter_list import site_initial_variable_codes, input_vairable_codes
 
 from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset, project_shapefile_EPSG, \
-    delineate_Watershed_atShapeFile, rasterToNetCDF
+    delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope
 from usu_data_service.servicefunctions.watershedFunctions import project_and_resample_Raster_EPSG, \
     create_OutletShape_Wrapper, resample_Raster
 from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable
+from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
 
 
 def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_client_secret=None, token=None,
@@ -30,7 +31,6 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
     # prepare watershed DEM data
     try:
 
-
         # Bounding box DEM
         input_static_DEM  = '/home/ahmet/hydosdata/subsetsource/nedWesternUS.tif'
         subsetDEM_file_path = os.path.join(uuid_file_path, 'DEM84.tif')
@@ -38,14 +38,14 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                               output_raster=subsetDEM_file_path,
                                               xmin=leftX, ymax=topY, xmax=rightX, ymin=bottomY)
 
-        #Options for projection with epsg full list at: http://spatialreference.org/ref/epsg/
+        # Options for projection with epsg full list at: http://spatialreference.org/ref/epsg/
         watershedDEM_file_path = os.path.join(uuid_file_path, 'DEM84_proj_resample.tif')
         WatershedDEM = project_and_resample_Raster_EPSG(input_raster=subsetDEM_file_path,
                                                         output_raster=watershedDEM_file_path,
                                                         dx=dx, dy=dy, epsg_code=epsgCode,
                                                         resample='near')  #TODO failed to make resapmle as parameter
 
-        #  Watershed outlet shape file
+        # Watershed outlet shape file
         outlet_shape_file_path = os.path.join(uuid_file_path, 'Outlet.shp')
         outlet_shape_file_result = create_OutletShape_Wrapper(outletPointX=lon_outlet,
                                                                outletPointY=lat_outlet,
@@ -56,37 +56,23 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                                           output_shape_file=project_shapefile_file_path,
                                                           epsg_code=epsgCode)
 
-        # Delineate watershed
-        # #  TODO watershed delineation: Error opening file xx.tif application called MPI_Abort(MPI_COMM_WORLD, 22) - process 0
-        # subprocess.Popen(['chmod', '-R', '0777', uuid_file_path]).wait()  # make sure the change the temp folder access right
-        #
-        # # Watershed_hires = HDS.delineate_watershed(WatershedDEM['output_raster'],
-        # #                 input_outlet_shapefile_url_path=project_shapefile_result['output_shape_file'],
-        # #                 threshold=streamThreshold, epsg_code=epsgCode,
-        # #                 output_raster=watershedName + str(dx) + 'WS.tif',
-        # #                 output_outlet_shapefile=watershedName + 'movOutlet.shp')
-        #
-        watershed_hires_result_dem = os.path.join(uuid_file_path, 'WS.tif')
-        watershed_hires_result_outlet = os.path.join(uuid_file_path, 'movOutlet.shp')
+        # Delineate watershed # remember to make the root call taudem function with full path
+        watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
+        watershed_hires_outlet_file_path = os.path.join(uuid_file_path, 'movOutlet.shp')
         Wathershed_hires = delineate_Watershed_atShapeFile(input_DEM_raster=watershedDEM_file_path,
                                                            input_outlet_shapefile=project_shapefile_file_path,
-                                                           output_raster=watershed_hires_result_dem,
-                                                           output_outlet_shapefile=watershed_hires_result_outlet,
+                                                           output_raster=watershed_hires_dem_file_path,
+                                                           output_outlet_shapefile=watershed_hires_outlet_file_path,
                                                            stream_threshold=streamThreshold)
 
-
-        ####Resample watershed grid to coarser grid # TODO change when delineation works
+        #Resample watershed grid to coarser grid # TODO change when delineation works
         if dxRes == dx and dyRes == dy:
-            Watershed_file_path = watershedDEM_file_path
+            Watershed_file_path = watershed_hires_dem_file_path
         else:
-            # Watershed = HDS.resample_raster(input_raster_url_path=watershedDEM_file_path,
-            #         cell_size_dx=dxRes, cell_size_dy=dyRes, resample='near', output_raster=watershedName + str(dxRes) + 'WS.tif')
 
-            Watershed_file_path = os.path.join(uuid_file_path, 'watershed.tif')
+            Watershed_file_path = os.path.join(uuid_file_path, 'watershed1.tif')
             Watershed = resample_Raster(input_raster=watershedDEM_file_path, output_raster=Watershed_file_path,
                                         dx=dxRes, dy=dyRes, resample='near')
-
-        #HDS.download_file(file_url_path=Watershed['output_raster'], save_as=workingDir+watershedName+str(dxRes)+'.tif')
 
         # ##  Convert to netCDF for UEB input
         Watershed_temp_nc = os.path.join(uuid_file_path, 'watershed_tmp.nc')
@@ -99,67 +85,82 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
 
     except Exception as e:
 
-        # if os.path.isdir(uuid_file_path):
-        #     delete_working_uuid_directory(uuid_file_path)
+        if os.path.isdir(uuid_file_path):
+            delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
-                'message': 'Failed to prepare the watershed DEM data'+uuid_file_path}
-    #
-    #
-    #
-    # # prepare the terrain variables
-    # try:
-    #     # aspect
-    #     aspect_hires = HDS.create_raster_aspect(input_raster_url_path=WatershedDEM['output_raster'],
-    #                                 output_raster=watershedName + 'Aspect' + str(dx)+ '.tif')
-    #
-    #     if dx == dxRes and dy == dyRes:
-    #         aspect = aspect_hires
-    #     else:
-    #         aspect = HDS.resample_raster(input_raster_url_path= aspect_hires['output_raster'], cell_size_dx=dxRes,
-    #                                 cell_size_dy=dyRes, resample='near', output_raster=watershedName + 'Aspect' + str(dxRes) + '.tif')
-    #     aspect_temp = HDS.raster_to_netcdf(input_raster_url_path=aspect['output_raster'],output_netcdf='aspect'+str(dxRes)+'.nc')
-    #     aspect_nc = HDS.netcdf_rename_variable(input_netcdf_url_path=aspect_temp['output_netcdf'],
-    #                                 output_netcdf='aspect.nc', input_variable_name='Band1', output_variable_name='aspect')
-    #     # slope
-    #     slope_hires = HDS.create_raster_slope(input_raster_url_path=WatershedDEM['output_raster'],
-    #                                 output_raster=watershedName + 'Slope' + str(dx) + '.tif')
-    #
-    #     if dx == dxRes and dy == dyRes:
-    #         slope = slope_hires
-    #     else:
-    #         slope = HDS.resample_raster(input_raster_url_path= slope_hires['output_raster'], cell_size_dx=dxRes,
-    #                                 cell_size_dy=dyRes, resample='near', output_raster=watershedName + 'Slope' + str(dxRes) + '.tif')
-    #     slope_temp = HDS.raster_to_netcdf(input_raster_url_path=slope['output_raster'], output_netcdf='slope'+str(dxRes)+'.nc')
-    #     slope_nc = HDS.netcdf_rename_variable(input_netcdf_url_path=slope_temp['output_netcdf'],
-    #                                 output_netcdf='slope.nc', input_variable_name='Band1', output_variable_name='slope')
-    #
-    #     #Land cover variables
-    #     nlcd_raster_resource = 'nlcd2011CONUS.tif'
-    #     subset_NLCD_result = HDS.project_clip_raster(input_raster=nlcd_raster_resource,
-    #                                 ref_raster_url_path=Watershed['output_raster'],
-    #                                 output_raster=watershedName + 'nlcdProj' + str(dxRes) + '.tif')
-    #     #cc
-    #     nlcd_variable_result = HDS.get_canopy_variable(input_NLCD_raster_url_path=subset_NLCD_result['output_raster'],
-    #                                 variable_name='cc', output_netcdf=watershedName+str(dxRes)+'cc.nc')
-    #     cc_nc = HDS.netcdf_rename_variable(input_netcdf_url_path=nlcd_variable_result['output_netcdf'],
-    #                                 output_netcdf='cc.nc', input_variable_name='Band1', output_variable_name='cc')
-    #     #hcan
-    #     nlcd_variable_result = HDS.get_canopy_variable(input_NLCD_raster_url_path=subset_NLCD_result['output_raster'],
-    #                                 variable_name='hcan', output_netcdf=watershedName+str(dxRes)+'hcan.nc')
-    #     hcan_nc = HDS.netcdf_rename_variable(input_netcdf_url_path=nlcd_variable_result['output_netcdf'],
-    #                                 output_netcdf='hcan.nc', input_variable_name='Band1',output_variable_name='hcan')
-    #     #lai
-    #     nlcd_variable_result = HDS.get_canopy_variable(input_NLCD_raster_url_path=subset_NLCD_result['output_raster'],
-    #                                 variable_name='lai', output_netcdf=watershedName+str(dxRes)+'lai.nc')
-    #     lai_nc = HDS.netcdf_rename_variable(input_netcdf_url_path=nlcd_variable_result['output_netcdf'],
-    #                                 output_netcdf='lai.nc', input_variable_name='Band1',output_variable_name='lai')
-    #
-    # except Exception as e:
-    #     service_response['status'] = 'Error'
-    #     service_response['result'] = 'Failed to prepare the terrain variables.' + e.message
-    #     # TODO clean up the space
-    #     return service_response
+                'message': 'Failed to prepare the watershed DEM data'}
+
+    # prepare the terrain variables
+    try:
+        # aspect
+        aspect_hires_file_path = os.path.join(uuid_file_path, 'Aspect.tif')
+        aspect_hires = computeRasterAspect(input_raster=watershedDEM_file_path, output_raster=aspect_hires_file_path)
+
+        if dx == dxRes and dy == dyRes:
+            aspect = aspect_hires_file_path
+        else:
+            aspect = os.path.join(uuid_file_path, 'Aspect1.tif')
+            aspect_resample = resample_Raster(input_raster=aspect_hires_file_path, output_raster=aspect,
+                                              dx=dxRes, dy=dyRes, resample='near')
+
+        aspect_temp_nc_file_path = os.path.join(uuid_file_path, 'aspect_tmp.nc')
+        aspect_temp = rasterToNetCDF(input_raster=aspect, output_netcdf=aspect_temp_nc_file_path)
+        aspect_nc_file_path = os.path.join(uuid_file_path, 'aspect.nc')
+        aspect_nc = netCDF_rename_variable(input_netcdf=aspect_temp_nc_file_path, output_netcdf=aspect_nc_file_path,
+                               input_varname='Band1', output_varname='aspect')
+
+        # slope
+        slop_hires_file_path = os.path.join(uuid_file_path, 'Slope.tif')
+        slope_hires = computeRasterSlope(input_raster=watershedDEM_file_path, output_raster=slop_hires_file_path)
+
+        if dx == dxRes and dy == dyRes:
+            slope = slop_hires_file_path
+        else:
+            slope = os.path.join(uuid_file_path, 'Slope1.tif')
+            slope_resample = resample_Raster(input_raster=slop_hires_file_path, output_raster=slope,
+                                              dx=dxRes, dy=dyRes, resample='near')
+        slope_temp_nc_file_path = os.path.join(uuid_file_path, 'slope_tmp.nc')
+        slope_temp = rasterToNetCDF(input_raster=slope, output_netcdf=slope_temp_nc_file_path)
+        slope_nc_file_path = os.path.join(uuid_file_path, 'slope.nc')
+        slope_nc = netCDF_rename_variable(input_netcdf=slope_temp_nc_file_path,
+                                    output_netcdf=slope_nc_file_path, input_varname='Band1', output_varname='slope')
+
+        # Land cover variables
+        nlcd_raster_resource = '/home/ahmet/hydosdata/nlcd2011CONUS/nlcd2011CONUS.tif'
+        subset_NLCD_result_file_path = os.path.join(uuid_file_path, 'nlcdProj.tif')
+        subset_NLCD_result = project_and_clip_raster(input_raster=nlcd_raster_resource, reference_raster=Watershed_file_path, output_raster=subset_NLCD_result_file_path)
+
+        #cc
+        nlcd_variable_result_tmp = os.path.join(uuid_file_path,'cc_tmp.nc')
+        nlcd_variable_result = get_canopy_variable(in_NLCDraster=subset_NLCD_result_file_path,
+                                                   output_netcdf=nlcd_variable_result_tmp, variable_name='cc')
+        cc_nc_file_path = os.path.join(uuid_file_path, 'cc.nc')
+        cc_nc = netCDF_rename_variable(input_netcdf=nlcd_variable_result_tmp, output_netcdf=cc_nc_file_path,
+                                       input_varname='Band1', output_varname='cc')
+
+        #hcan
+        nlcd_variable_result_tmp = os.path.join(uuid_file_path, 'hcan_tmp.nc')
+        nlcd_variable_result = get_canopy_variable(in_NLCDraster=subset_NLCD_result_file_path,
+                            output_netcdf=nlcd_variable_result_tmp, variable_name='hcan')
+        hcan_nc_file_path = os.path.join(uuid_file_path, 'hcan.nc')
+        hcan_nc = netCDF_rename_variable(input_netcdf=nlcd_variable_result_tmp, output_netcdf=hcan_nc_file_path,
+                               input_varname='Band1', output_varname='hcan')
+
+        #lai
+        nlcd_variable_result_tmp = os.path.join(uuid_file_path, 'lai_tmp.nc')
+        nlcd_variable_result = get_canopy_variable(in_NLCDraster=subset_NLCD_result_file_path,
+                                                   output_netcdf=nlcd_variable_result_tmp, variable_name='lai')
+        lai_nc_file_path = os.path.join(uuid_file_path, 'lai.nc')
+        lai_nc = netCDF_rename_variable(input_netcdf=nlcd_variable_result_tmp, output_netcdf=lai_nc_file_path,
+                               input_varname='Band1', output_varname='lai')
+
+    except Exception as e:
+        if os.path.isdir(uuid_file_path):
+            delete_working_uuid_directory(uuid_file_path)
+
+        return {'success': 'False',
+                'message': 'Failed to prepare the terrian variables data'}
     #
     #
     # # prepare the climate variables
@@ -322,4 +323,4 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
     #                                 res_title, res_info['resource_id'])
 
     return {'success': 'True',
-            'message': 'Please check resource http://www.hydroshare.org/resource/{}'+uuid_file_path+Watershed['success']}
+            'message': 'Please check resource http://www.hydroshare.org/resource/{}'+uuid_file_path}
