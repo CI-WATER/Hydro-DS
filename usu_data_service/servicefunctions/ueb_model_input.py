@@ -15,7 +15,8 @@ from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset
     delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope
 from usu_data_service.servicefunctions.watershedFunctions import project_and_resample_Raster_EPSG, \
     create_OutletShape_Wrapper, resample_Raster
-from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable
+from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable, subset_netCDF_to_reference_raster, \
+    concatenate_netCDF, get_netCDF_subset_TimeDim, project_subset_and_resample_netcdf_to_reference_netcdf, convert_netcdf_units
 from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
 
 
@@ -146,10 +147,10 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         #hcan
         nlcd_variable_result_tmp = os.path.join(uuid_file_path, 'hcan_tmp.nc')
         nlcd_variable_result = get_canopy_variable(in_NLCDraster=subset_NLCD_result_file_path,
-                            output_netcdf=nlcd_variable_result_tmp, variable_name='hcan')
+                                                   output_netcdf=nlcd_variable_result_tmp, variable_name='hcan')
         hcan_nc_file_path = os.path.join(uuid_file_path, 'hcan.nc')
         hcan_nc = netCDF_rename_variable(input_netcdf=nlcd_variable_result_tmp, output_netcdf=hcan_nc_file_path,
-                               input_varname='Band1', output_varname='hcan')
+                                         input_varname='Band1', output_varname='hcan')
 
         #lai
         nlcd_variable_result_tmp = os.path.join(uuid_file_path, 'lai_tmp.nc')
@@ -157,7 +158,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                                    output_netcdf=nlcd_variable_result_tmp, variable_name='lai')
         lai_nc_file_path = os.path.join(uuid_file_path, 'lai.nc')
         lai_nc = netCDF_rename_variable(input_netcdf=nlcd_variable_result_tmp, output_netcdf=lai_nc_file_path,
-                               input_varname='Band1', output_varname='lai')
+                                        input_varname='Band1', output_varname='lai')
 
     except Exception as e:
         if os.path.isdir(uuid_file_path):
@@ -165,66 +166,85 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
 
         return {'success': 'False',
                 'message': 'Failed to prepare the terrian variables data'}
-    #
-    #
-    # # prepare the climate variables
-    # try:
-    #     startYear = datetime.strptime(startDateTime,"%Y/%m/%d").year
-    #     endYear = datetime.strptime(endDateTime,"%Y/%m/%d").year
-    #     #### we are using data from Daymet; so data are daily
-    #     startDate = datetime.strptime(startDateTime, "%Y/%m/%d").date().strftime('%m/%d/%Y')
-    #     endDate = datetime.strptime(endDateTime, "%Y/%m/%d").date().strftime('%m/%d/%Y')
-    #
-    #     climate_Vars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
-    #     ####iterate through climate variables
-    #     for var in climate_Vars:
-    #         for year in range(startYear, endYear + 1):
-    #             climatestaticFile1 = var + "_" + str(year) + ".nc4"
-    #             climateFile1 = watershedName + '_' + var + "_" + str(year) + ".nc"
-    #             Year1sub_request = HDS.subset_netcdf(input_netcdf=climatestaticFile1,
-    #                                                  ref_raster_url_path=Watershed['output_raster'],
-    #                                                  output_netcdf=climateFile1)
-    #             concatFile = "conc_" + climateFile1
-    #             if year == startYear:
-    #                 concatFile1_url = Year1sub_request['output_netcdf']
-    #             else:
-    #                 concatFile2_url = Year1sub_request['output_netcdf']
-    #                 concateNC_request = HDS.concatenate_netcdf(input_netcdf1_url_path=concatFile1_url,
-    #                                                            input_netcdf2_url_path=concatFile2_url,
-    #                                                            output_netcdf=concatFile)
-    #                 concatFile1_url = concateNC_request['output_netcdf']
-    #
-    #         timesubFile = "tSub_" + climateFile1
-    #         subset_NC_by_time_result = HDS.subset_netcdf_by_time(input_netcdf_url_path=concatFile1_url,
-    #                                                              time_dimension_name='time', start_date=startDate,
-    #                                                              end_date=endDate, output_netcdf=timesubFile)
-    #         subset_NC_by_time_file_url = subset_NC_by_time_result['output_netcdf']
-    #         if var == 'prcp':
-    #             proj_resample_file = var + "_0.nc"
-    #         else:
-    #             proj_resample_file = var + "0.nc"
-    #         ncProj_resample_result = HDS.project_subset_resample_netcdf(
-    #             input_netcdf_url_path=subset_NC_by_time_file_url,
-    #             ref_netcdf_url_path=Watershed_NC['output_netcdf'],
-    #             variable_name=var, output_netcdf=proj_resample_file)
-    #         ncProj_resample_file_url = ncProj_resample_result['output_netcdf']
-    #
-    #         #### Do unit conversion for precipitation (mm/day --> m/hr)
-    #         if var == 'prcp':
-    #             proj_resample_file = var + "0.nc"
-    #             ncProj_resample_result = HDS.convert_netcdf_units(input_netcdf_url_path=ncProj_resample_file_url,
-    #                                                             output_netcdf=proj_resample_file,
-    #                                                             variable_name=var, variable_new_units='m/hr',
-    #                                                             multiplier_factor=0.00004167, offset=0.0)
-    #             # ncProj_resample_file_url = ncProj_resample_result['output_netcdf']
-    #
-    # except Exception as e:
-    #     service_response['status'] = 'Error'
-    #     service_response['result'] = 'Failed to prepare the climate variables.' + e.message
-    #     # TODO clean up the space
-    #     return service_response
-    #
-    #
+
+    # prepare the climate variables
+    try:
+        climate_files_path = []
+        startYear = datetime.strptime(startDateTime,"%Y/%m/%d").year
+        endYear = datetime.strptime(endDateTime,"%Y/%m/%d").year
+        # we are using data from Daymet; so data are daily
+        start_date_value = datetime.strptime(startDateTime, "%Y/%m/%d")
+        end_date_value = datetime.strptime(endDateTime, "%Y/%m/%d")
+        start_time_index = start_date_value.day-1
+        end_time_index = start_date_value.day + (end_date_value - start_date_value).days -1
+
+
+        climate_Vars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
+
+        #iterate through climate variables
+        for var in climate_Vars:
+            for year in range(startYear, endYear + 1):
+                climatestaticFile1 = os.path.join('/home/ahmet/hydosdata/DaymetClimate', var + "_" + str(year) + ".nc4")
+                climateFile1 = os.path.join(uuid_file_path, var + "_" + str(year) + ".nc")
+
+                Year1sub_request = subset_netCDF_to_reference_raster(input_netcdf=climatestaticFile1,
+                                                                     reference_raster=Watershed_file_path,
+                                                                     output_netcdf=climateFile1)
+
+                concatFile = os.path.join(uuid_file_path, "conc_" + var + "_" + str(year) + ".nc")
+                if year == startYear:
+                    concatFile1_url = climateFile1
+                else:
+                    concatFile2_url = climateFile1
+                    concateNC_request = concatenate_netCDF(input_netcdf1=concatFile1_url,
+                                                           input_netcdf2=concatFile2_url,
+                                                           output_netcdf=concatFile)
+                    concatFile1_url = concatFile
+
+            timesubFile = os.path.join(uuid_file_path, "tSub_" + var + "_" + str(year) + ".nc")
+
+            subset_NC_by_time_result = get_netCDF_subset_TimeDim(input_netcdf=concatFile1_url,
+                                                                  output_netcdf=timesubFile,
+                                                                  time_dim_name='time',
+                                                                  start_time_index=start_time_index,
+                                                                  end_time_index=end_time_index)
+            subset_NC_by_time_file_url = timesubFile
+
+            if var == 'prcp':
+                proj_resample_file = os.path.join(uuid_file_path, var + "_0.nc")
+            else:
+                proj_resample_file = os.path.join(uuid_file_path, var + "0.nc")
+
+            ncProj_resample_result = project_subset_and_resample_netcdf_to_reference_netcdf(input_netcdf=subset_NC_by_time_file_url,
+                                                                                            reference_netcdf=Watershed_NC_file_path,
+                                                                                            variable_name=var,
+                                                                                            output_netcdf=proj_resample_file)
+
+            os.remove(os.path.join(uuid_file_path, 'temp_1.nc'))  # remember to remove the temp files when do the resample
+            os.remove(os.path.join(uuid_file_path, 'temp_2.nc'))
+
+            ncProj_resample_file_url = proj_resample_file
+
+            # Do unit conversion for precipitation (mm/day --> m/hr)
+            if var == 'prcp':
+                prcp_proj_resample_file = os.path.join(uuid_file_path, var + "0.nc")
+                ncProj_resample_result = convert_netcdf_units(input_netcdf=ncProj_resample_file_url,
+                                                              output_netcdf=prcp_proj_resample_file,
+                                                              variable_name=var,
+                                                              variable_new_units="m/hr",
+                                                              multiplier_factor=0.00004167,
+                                                              offset=0.0)
+                ncProj_resample_file_url = prcp_proj_resample_file
+
+            climate_files_path.append(ncProj_resample_file_url)
+
+    except Exception as e:
+        if os.path.isdir(uuid_file_path):
+            delete_working_uuid_directory(uuid_file_path)
+
+        return {'success': 'False',
+                'message': 'Failed to prepare the climate variables data'+uuid_file_path+''+str(start_time_index)+str(end_time_index)}
+
     # prepare the parameter files
     try:
         parameter_file_path = []
@@ -265,7 +285,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                  'vp0.nc', 'srad0.nc', 'tmin0.nc', 'tmax0.nc', 'prcp0.nc']
 
         ueb_input_files_path = [Watershed_NC_file_path, aspect_nc_file_path, slope_nc_file_path, cc_nc_file_path,
-                                hcan_nc_file_path, lai_nc_file_path]  # TODO add climate files
+                                hcan_nc_file_path, lai_nc_file_path]+climate_files_path
 
         zip_file_path = os.path.join(uuid_file_path, watershedName + '_input.zip' if watershedName else 'ueb_model_input.zip')
         zf = zipfile.ZipFile(zip_file_path, 'w')
@@ -274,8 +294,6 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         zf.close()
 
         # create resource metadata list
-        # TODO create the metadata for ueb model instance: box, time, resolution, watershed name, streamthreshold,epsg code, outlet point
-
         if parameter_file_path:
             hs_abstract = 'It was created using HydroShare UEB model inputs preparation application which utilized the HydroDS modeling web services. ' \
                           'The model inputs data files include: {}. The model parameter files include: {}. This model instance resource is complete for model simulation. ' \
@@ -308,9 +326,21 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                       }
                          })
 
-        extra_metadata = {'key1':'value1'}
         # metadata.append({'contributor': {'name': 'John Smith', 'email': 'jsmith@gmail.com'}})
         # metadata.append({'relation': {'type': 'cites', 'value': 'http'}})
+
+        variable_dict = { 'EPSG code for data': epsgCode,
+                          'Stream Threshold': streamThreshold,
+                          'Outlet Lattitude': lat_outlet,
+                          'Outlet Longitude': lon_outlet,
+                          'Modeling Resolution dx': dxRes,
+                          'Modeling Resolution dy': dyRes
+                        }
+
+        extra_metadata = {}
+        for name, value in variable_dict.items():
+            if value:
+                extra_metadata[name] = str(value)
 
         # create resource
         if hs_username and hs_password:
@@ -327,7 +357,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         res_info = hs.createResource('ModelInstanceResource',
                                      title=res_title if res_title else 'UEB model input package',
                                      resource_file=zip_file_path,
-                                     keywords=res_keywords if res_keywords else ['UEB', 'snowmelt modeling'],
+                                     keywords=json.loads(res_keywords) if res_keywords else ['UEB', 'snowmelt modeling'],
                                      abstract=hs_abstract,
                                      metadata=json.dumps(metadata),
                                      extra_metadata=json.dumps(extra_metadata)
@@ -337,7 +367,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         #     delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
-                'message': 'Failed to share the model input package to HydroShare'+uuid_file_path+str(type(json.loads(res_keywords)))}
+                'message': 'Failed to share the model input package to HydroShare'+uuid_file_path+str(extra_metadata)}
 
     delete_working_uuid_directory(uuid_file_path)
 
