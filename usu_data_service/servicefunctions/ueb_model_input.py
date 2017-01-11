@@ -3,11 +3,13 @@ import json
 import zipfile
 import shutil
 import subprocess
-import datetime
+from datetime import datetime
+
 
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareAuthBasic
 from usu_data_service.utils import generate_uuid_file_path, delete_working_uuid_directory
-from usu_data_service.servicefunctions.model_parameter_list import site_initial_variable_codes, input_vairable_codes
+from usu_data_service.servicefunctions.model_parameter_list import *
+
 
 from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset, project_shapefile_EPSG, \
     delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope
@@ -20,10 +22,12 @@ from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_r
 def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_client_secret=None, token=None,
                      topY=None, bottomY=None, leftX=None, rightX=None,
                      lat_outlet=None, lon_outlet=None, streamThreshold=1000, watershedName=None,
+                     usic=None, wsic=None, tic=None, wcic=None, ts_last=None,
                      epsgCode=None, startDateTime=None, endDateTime=None, dx=None, dy=None,
                       dxRes=None, dyRes=None, res_title=None, res_keywords=None,
                       **kwargs):
     #TODO: remember to change the workspace folder in hydrods with access right chmod -R 0777 /workspace
+    # TODO: write validation function for the parameter input: date, bounding box, site initial, dx, dy, epsg
 
     # create tmp folder for new request
     uuid_file_path = generate_uuid_file_path()
@@ -65,7 +69,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                                            output_outlet_shapefile=watershed_hires_outlet_file_path,
                                                            stream_threshold=streamThreshold)
 
-        #Resample watershed grid to coarser grid # TODO change when delineation works
+        # Resample watershed grid to coarser grid # TODO change when delineation works
         if dxRes == dx and dyRes == dy:
             Watershed_file_path = watershed_hires_dem_file_path
         else:
@@ -221,106 +225,121 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
     #     return service_response
     #
     #
-    # # prepare the parameter files
-    # try:
-    #     # create temp parameter files
-    #     temp_dir = tempfile.mkdtemp()
-    #
-    #     # update the control.dat content
-    #     start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
-    #     end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
-    #     start_str = datetime.strftime(start_obj, '%Y %M %d') + ' 0.0'
-    #     end_str = datetime.strftime(end_obj, '%Y %M %d') + ' 0.0'
-    #     file_contents_dict['control.dat'][8] = start_str
-    #     file_contents_dict['control.dat'][9] = end_str
-    #
-    #     # update the siteinitial.dat content
-    #     lat = 0.5 * (topY+bottomY)
-    #     lon = 0.5 * (rightX+leftX)
-    #     file_contents_dict['siteinitial.dat'][45] = str(lat)
-    #     file_contents_dict['siteinitial.dat'][96] = str(lon)
-    #
-    #     # write list in parameter files
-    #     for file_name, file_content in file_contents_dict.items():
-    #         file_path = os.path.join(temp_dir, file_name)
-    #         with open(file_path, 'w') as para_file:
-    #             para_file.write('\r\n'.join(file_content))  # the line separator is \r\n
-    #
-    #     # upload files to Hydro-DS
-    #     for file_name in file_contents_dict.keys():
-    #         HDS.upload_file(file_to_upload=os.path.join(temp_dir, file_name))
-    #
-    #     # clean up tempdir
-    #     parameter_file_names = file_contents_dict.keys()
-    #     shutil.rmtree(temp_dir)
-    #
-    # except Exception as e:
-    #     parameter_file_names = []
-    #     shutil.rmtree(temp_dir)
-    #
-    #     # # TODO remove the lines below
-    #     # service_response['status'] = 'Error'
-    #     # service_response['result'] = 'Failed to prepare the parameter files.' + e.message
-    #     # return service_response
-    #
-    #
-    # # share result to HydroShare
-    # try:
-    #     #upload ueb input package to hydroshare
-    #     ueb_inputPackage_dict = ['watershed.nc', 'aspect.nc', 'slope.nc', 'cc.nc', 'hcan.nc', 'lai.nc',
-    #                              'vp0.nc', 'srad0.nc', 'tmin0.nc', 'tmax0.nc', 'prcp0.nc']
-    #     HDS.zip_files(files_to_zip=ueb_inputPackage_dict+parameter_file_names, zip_file_name=watershedName+'_input.zip')
-    #
-    #     # create resource metadata list
-    #     # TODO create the metadata for ueb model instance: box, time, resolution, watershed name, streamthreshold,epsg code, outlet poi
-    #     hs_title = res_title
-    #
-    #     if parameter_file_names:
-    #         hs_abstract = 'It was created using HydroShare UEB model inputs preparation application which utilized the HydroDS modeling web services. ' \
-    #                       'The model inputs data files include: {}. The model parameter files include: {}. This model instance resource is complete for model simulation. ' \
-    #                       .format(', '.join(ueb_inputPackage_dict), ', '.join(file_contents_dict.keys()))
-    #     else:
-    #         hs_abstract = 'It was created using HydroShare UEB model inputs preparation application which utilized the HydroDS modeling web services. ' \
-    #                       'The prepared files include: {}. This model instance resource still needs model parameter files {}'\
-    #                        .format(', '.join(ueb_inputPackage_dict), ', '.join(file_contents_dict.keys()))
-    #
-    #     hs_keywords = res_keywords.split(',')
-    #
-    #     metadata = []
-    #     metadata.append({"coverage": {"type": "box",
-    #                                   "value": {"northlimit": str(topY),
-    #                                             "southlimit": str(bottomY),
-    #                                             "eastlimit": str(rightX),
-    #                                             "westlimit": str(leftX),
-    #                                             "units": "Decimal degrees",
-    #                                             "projection": "WGS 84 EPSG:4326"
-    #                                             }
-    #                                   }
-    #                      })
-    #
-    #     start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
-    #     end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
-    #     metadata.append({"coverage": {"type": "period",
-    #                                   "value": {"start": datetime.strftime(start_obj, '%M/%d/%Y'),
-    #                                             "end": datetime.strftime(end_obj, '%M/%d/%Y'),
-    #                                             }
-    #                                   }
-    #                      })
-    #     # metadata.append({'contributor': {'name': 'John Smith', 'email': 'jsmith@gmail.com'}})
-    #     # metadata.append({'relation': {'type': 'cites', 'value': 'http'}})
-    #
-    #     # create resource
-    #     HDS.set_hydroshare_account(hs_name, hs_password)
-    #     res_info = HDS.create_hydroshare_resource(file_name=watershedName+'_input.zip', resource_type='ModelInstanceResource', title=hs_title,
-    #                                abstract=hs_abstract, keywords=hs_keywords, metadata=metadata)
-    # except Exception as e:
-    #     service_response['status'] = 'Error'
-    #     service_response['result'] = 'Failed to share the results to HydroShare.' + e.message
-    #     # TODO clean up the space
-    #     return service_response
-    #
-    # service_response['result'] = "A model instance resource with name '{}' has been created with link https://www.hydroshare.org/resoruce/{}".format(
-    #                                 res_title, res_info['resource_id'])
+    # prepare the parameter files
+    try:
+        parameter_file_path = []
+        # update the control.dat content
+        start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
+        end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
+        start_str = datetime.strftime(start_obj, '%Y %M %d') + ' 0.0'
+        end_str = datetime.strftime(end_obj, '%Y %M %d') + ' 0.0'
+        file_contents_dict['control.dat'][8] = start_str
+        file_contents_dict['control.dat'][9] = end_str
+
+        # update the siteinitial.dat content
+        lat = 0.5 * (topY+bottomY)/2.0
+        lon = 0.5 * (rightX+leftX)
+        file_contents_dict['siteinitial.dat'][45] = str(lat)
+        file_contents_dict['siteinitial.dat'][96] = str(lon)
+
+        site_variables_dict = {3: usic, 6: wsic, 9: tic, 12: wcic, 93: ts_last}
+        for line, var_name in site_variables_dict.items():
+            if var_name:
+                file_contents_dict['siteinitial.dat'][line] = str(var_name)
+
+        # write list in parameter files
+        for file_name, file_content in file_contents_dict.items():
+            file_path = os.path.join(uuid_file_path, file_name)
+            with open(file_path, 'w') as para_file:
+                para_file.write('\r\n'.join(file_content))  # the line separator is \r\n
+            parameter_file_path.append(file_path)
+
+    except Exception as e:
+        parameter_file_path = []
+        pass
+
+    # share result to HydroShare
+    try:
+        # zip model input files
+        ueb_input_files_path = ['watershed.nc', 'aspect.nc', 'slope.nc', 'cc.nc', 'hcan.nc', 'lai.nc',
+                                 'vp0.nc', 'srad0.nc', 'tmin0.nc', 'tmax0.nc', 'prcp0.nc']
+
+        ueb_input_files_path = [Watershed_NC_file_path, aspect_nc_file_path, slope_nc_file_path, cc_nc_file_path,
+                                hcan_nc_file_path, lai_nc_file_path]  # TODO add climate files
+
+        zip_file_path = os.path.join(uuid_file_path, watershedName + '_input.zip' if watershedName else 'ueb_model_input.zip')
+        zf = zipfile.ZipFile(zip_file_path, 'w')
+        for file_path in ueb_input_files_path+parameter_file_path:
+            zf.write(file_path, os.path.basename(file_path))
+        zf.close()
+
+        # create resource metadata list
+        # TODO create the metadata for ueb model instance: box, time, resolution, watershed name, streamthreshold,epsg code, outlet point
+
+        if parameter_file_path:
+            hs_abstract = 'It was created using HydroShare UEB model inputs preparation application which utilized the HydroDS modeling web services. ' \
+                          'The model inputs data files include: {}. The model parameter files include: {}. This model instance resource is complete for model simulation. ' \
+                          .format(', '.join([os.path.basename(file_path) for file_path in ueb_input_files_path]),
+                                  ', '.join(file_contents_dict.keys()))
+        else:
+            hs_abstract = 'It was created using HydroShare UEB model inputs preparation application which utilized the HydroDS modeling web services. ' \
+                          'The prepared files include: {}. This model instance resource still needs model parameter files {}'\
+                           .format(', '.join([os.path.basename(file_path) for file_path in ueb_input_files_path]),
+                                   ', '.join(file_contents_dict.keys()))
+
+        metadata = []
+        metadata.append({"coverage": {"type": "box",
+                                      "value": {"northlimit": str(topY),
+                                                "southlimit": str(bottomY),
+                                                "eastlimit": str(rightX),
+                                                "westlimit": str(leftX),
+                                                "units": "Decimal degrees",
+                                                "projection": "WGS 84 EPSG:4326"
+                                                }
+                                      }
+                         })
+
+        start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
+        end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
+        metadata.append({"coverage": {"type": "period",
+                                      "value": {"start": datetime.strftime(start_obj, '%M/%d/%Y'),
+                                                "end": datetime.strftime(end_obj, '%M/%d/%Y'),
+                                                }
+                                      }
+                         })
+
+        extra_metadata = {'key1':'value1'}
+        # metadata.append({'contributor': {'name': 'John Smith', 'email': 'jsmith@gmail.com'}})
+        # metadata.append({'relation': {'type': 'cites', 'value': 'http'}})
+
+        # create resource
+        if hs_username and hs_password:
+            auth = HydroShareAuthBasic(hs_username, hs_password)
+        elif hs_client_id and hs_client_secret and token:
+            token = json.loads(token)
+            auth = HydroShareAuthOAuth2(hs_client_id, hs_client_secret, token=token)
+        else:
+            return {'success': "False",
+                    'message': "Authentication to HydroShare is failed. Please provide HydroShare User information"}
+
+        hs = HydroShare(auth=auth)
+
+        res_info = hs.createResource('ModelInstanceResource',
+                                     title=res_title if res_title else 'UEB model input package',
+                                     resource_file=zip_file_path,
+                                     keywords=res_keywords if res_keywords else ['UEB', 'snowmelt modeling'],
+                                     abstract=hs_abstract,
+                                     metadata=json.dumps(metadata),
+                                     extra_metadata=json.dumps(extra_metadata)
+                                     )
+    except Exception as e:
+        # if os.path.isdir(uuid_file_path):
+        #     delete_working_uuid_directory(uuid_file_path)
+
+        return {'success': 'False',
+                'message': 'Failed to share the model input package to HydroShare'+uuid_file_path+str(type(json.loads(res_keywords)))}
+
+    delete_working_uuid_directory(uuid_file_path)
 
     return {'success': 'True',
-            'message': 'Please check resource http://www.hydroshare.org/resource/{}'+uuid_file_path}
+            'message': 'Please check resource http://www.hydroshare.org/resource/{}'.format(res_info)}

@@ -375,7 +375,9 @@ funcs = {
                    'file_outputs': [],
                    'user_inputs': ['hs_username', 'hs_password', 'hs_client_id', 'hs_client_secret',
                                    'token', 'topY', 'bottomY', 'leftX', 'rightX','dx','dy','epsgCode','resample',
-                                   'lon_outlet', 'lat_outlet', 'streamThreshold', 'dxRes', 'dyRes'],
+                                   'lon_outlet', 'lat_outlet', 'streamThreshold', 'dxRes', 'dyRes','wsic','usic',
+                                   'tic','wcic', 'ts_last', 'startDateTime','endDateTime','res_keywords','res_title',
+                                   'watershedName'],
                    'user_file_inputs': [],
                    'validator': CreateUebInputValidator
                 }
