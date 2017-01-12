@@ -14,10 +14,11 @@ from usu_data_service.servicefunctions.model_parameter_list import *
 from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset, project_shapefile_EPSG, \
     delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope
 from usu_data_service.servicefunctions.watershedFunctions import project_and_resample_Raster_EPSG, \
-    create_OutletShape_Wrapper, resample_Raster
+    create_OutletShape_Wrapper, resample_Raster, convert_watershed_raster_grid_as_integer
 from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable, subset_netCDF_to_reference_raster, \
     concatenate_netCDF, get_netCDF_subset_TimeDim, project_subset_and_resample_netcdf_to_reference_netcdf, convert_netcdf_units
 from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
+from usu_data_service.servicefunctions.gdal_calc import Calc
 
 
 def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_client_secret=None, token=None,
@@ -27,7 +28,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                      epsgCode=None, startDateTime=None, endDateTime=None, dx=None, dy=None,
                       dxRes=None, dyRes=None, res_title=None, res_keywords=None,
                       **kwargs):
-    #TODO: remember to change the workspace folder in hydrods with access right chmod -R 0777 /workspace
+     #TODO: remember to change the workspace folder in hydrods with access right chmod -R 0777 /workspace
     # TODO: write validation function for the parameter input: date, bounding box, site initial, dx, dy, epsg
 
     # create tmp folder for new request
@@ -50,33 +51,37 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                                         dx=dx, dy=dy, epsg_code=epsgCode,
                                                         resample='near')  #TODO failed to make resapmle as parameter
 
-        # Watershed outlet shape file
-        outlet_shape_file_path = os.path.join(uuid_file_path, 'Outlet.shp')
-        outlet_shape_file_result = create_OutletShape_Wrapper(outletPointX=lon_outlet,
-                                                               outletPointY=lat_outlet,
-                                                               output_shape_file_name=outlet_shape_file_path)
+        # Watershed delineation
+        if lon_outlet and lat_outlet:
+            outlet_shape_file_path = os.path.join(uuid_file_path, 'Outlet.shp')
+            outlet_shape_file_result = create_OutletShape_Wrapper(outletPointX=lon_outlet,
+                                                                   outletPointY=lat_outlet,
+                                                                   output_shape_file_name=outlet_shape_file_path)
 
-        project_shapefile_file_path = os.path.join(uuid_file_path, 'OutletProj.shp')
-        project_shapefile_result = project_shapefile_EPSG(input_shape_file=os.path.join(uuid_file_path, 'Outlet'),
-                                                          output_shape_file=project_shapefile_file_path,
-                                                          epsg_code=epsgCode)
+            project_shapefile_file_path = os.path.join(uuid_file_path, 'OutletProj.shp')
+            project_shapefile_result = project_shapefile_EPSG(input_shape_file=os.path.join(uuid_file_path, 'Outlet'),
+                                                              output_shape_file=project_shapefile_file_path,
+                                                              epsg_code=epsgCode)
 
-        # Delineate watershed # remember to make the root call taudem function with full path
-        watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
-        watershed_hires_outlet_file_path = os.path.join(uuid_file_path, 'movOutlet.shp')
-        Wathershed_hires = delineate_Watershed_atShapeFile(input_DEM_raster=watershedDEM_file_path,
-                                                           input_outlet_shapefile=project_shapefile_file_path,
-                                                           output_raster=watershed_hires_dem_file_path,
-                                                           output_outlet_shapefile=watershed_hires_outlet_file_path,
-                                                           stream_threshold=streamThreshold)
+            # Delineate watershed  TODO remember to make the root call taudem function with full path
+            watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
+            watershed_hires_outlet_file_path = os.path.join(uuid_file_path, 'movOutlet.shp')
+            Watershed_hires = delineate_Watershed_atShapeFile(input_DEM_raster=watershedDEM_file_path,
+                                                               input_outlet_shapefile=project_shapefile_file_path,
+                                                               output_raster=watershed_hires_dem_file_path,
+                                                               output_outlet_shapefile=watershed_hires_outlet_file_path,
+                                                               stream_threshold=streamThreshold)
+        else:
+            watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
+            Watershed_hires = Calc(calc='(A>0)', A=watershedDEM_file_path, outfile=watershed_hires_dem_file_path, NoDataValue=-0.1)
 
-        # Resample watershed grid to coarser grid # TODO change when delineation works
+        # Resample watershed grid to coarser grid # TODO when outlet point is optional make the watershed.nc only include integers
         if dxRes == dx and dyRes == dy:
             Watershed_file_path = watershed_hires_dem_file_path
         else:
 
             Watershed_file_path = os.path.join(uuid_file_path, 'watershed1.tif')
-            Watershed = resample_Raster(input_raster=watershedDEM_file_path, output_raster=Watershed_file_path,
+            Watershed = resample_Raster(input_raster=watershed_hires_dem_file_path, output_raster=Watershed_file_path,
                                         dx=dxRes, dy=dyRes, resample='near')
 
         # ##  Convert to netCDF for UEB input
@@ -90,8 +95,8 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
 
     except Exception as e:
 
-        if os.path.isdir(uuid_file_path):
-            delete_working_uuid_directory(uuid_file_path)
+        # if os.path.isdir(uuid_file_path):
+        #     delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
                 'message': 'Failed to prepare the watershed DEM data'}
@@ -178,9 +183,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         start_time_index = start_date_value.day-1
         end_time_index = start_date_value.day + (end_date_value - start_date_value).days -1
 
-
         climate_Vars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
-
         #iterate through climate variables
         for var in climate_Vars:
             for year in range(startYear, endYear + 1):
