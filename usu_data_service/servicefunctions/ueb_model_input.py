@@ -73,7 +73,8 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                                                stream_threshold=streamThreshold)
         else:
             watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
-            Watershed_hires = Calc(calc='(A>0)', A=watershedDEM_file_path, outfile=watershed_hires_dem_file_path, NoDataValue=-0.1)
+            Watershed_hires = Calc(calc='(A<0)*-1001+1', A=watershedDEM_file_path, outfile=watershed_hires_dem_file_path,
+                                   NoDataValue=-1000, type='Int16')  # remember to keep only two values in the netcdf file, 1 or no data value!
 
         # Resample watershed grid to coarser grid # TODO when outlet point is optional make the watershed.nc only include integers
         if dxRes == dx and dyRes == dy:
