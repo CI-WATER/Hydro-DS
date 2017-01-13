@@ -73,20 +73,22 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
             return {'success': 'False', 'message': validation['result'] }
         else:
             # copy ueb executable
+            ueb_bash_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/runueb.sh'
             ueb_exe_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/ueb'  #TODO find out the ueb file path
             shutil.copy(ueb_exe_path, model_input_folder)
+            shutil.copy(ueb_bash_path, model_input_folder)
 
             # run ueb model
             try:
-                process = subprocess.Popen(['./ueb', 'control.dat'], stdout=subprocess.PIPE,
+                process = subprocess.Popen(['./runueb.sh'], stdout=subprocess.PIPE,
                                        cwd=model_input_folder).wait()
 
                 # process = subprocess.Popen(['echo', 'jamy'], cwd=model_input_folder).wait()
 
                 # check simulation result
                 if process != 0:
-                    delete_working_uuid_directory(uuid_file_path)
-                    return {'success': 'False', 'message': 'failed to execute ueb model process fail'}
+                    # delete_working_uuid_directory(uuid_file_path)
+                    return {'success': 'False', 'message': 'failed to execute ueb model process fail'+str(process)+' '+uuid_file_path}
                 else:
                     # get point output file
                     output_file_name_list = []
