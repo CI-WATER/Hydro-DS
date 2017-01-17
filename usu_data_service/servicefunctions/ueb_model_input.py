@@ -14,7 +14,7 @@ from usu_data_service.servicefunctions.model_parameter_list import *
 from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset, project_shapefile_EPSG, \
     delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope
 from usu_data_service.servicefunctions.watershedFunctions import project_and_resample_Raster_EPSG, \
-    create_OutletShape_Wrapper, resample_Raster, convert_watershed_raster_grid_as_integer
+    create_OutletShape_Wrapper, resample_Raster
 from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable, subset_netCDF_to_reference_raster, \
     concatenate_netCDF, get_netCDF_subset_TimeDim, project_subset_and_resample_netcdf_to_reference_netcdf, convert_netcdf_units
 from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
@@ -96,8 +96,8 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
 
     except Exception as e:
 
-        # if os.path.isdir(uuid_file_path):
-        #     delete_working_uuid_directory(uuid_file_path)
+        if os.path.isdir(uuid_file_path):
+            delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
                 'message': 'Failed to prepare the watershed DEM data'}
@@ -367,13 +367,13 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                      extra_metadata=json.dumps(extra_metadata)
                                      )
     except Exception as e:
-        # if os.path.isdir(uuid_file_path):
-        #     delete_working_uuid_directory(uuid_file_path)
+        if os.path.isdir(uuid_file_path):
+            delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
-                'message': 'Failed to share the model input package to HydroShare'+uuid_file_path+str(extra_metadata)}
+                'message': 'Failed to share the model input package to HydroShare'}
 
     delete_working_uuid_directory(uuid_file_path)
 
     return {'success': 'True',
-            'message': 'Please check resource http://www.hydroshare.org/resource/{}'.format(res_info)}
+            'message': 'A model instance resource with name {} has been created. Please check resource http://www.hydroshare.org/resource/{}'.format(res_title, res_info)}
