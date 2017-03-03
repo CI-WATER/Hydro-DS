@@ -6,6 +6,7 @@ from gdalconst import *
 import shlex
 import subprocess
 import os
+from datetime import datetime
 import numpy
 
 
@@ -49,6 +50,67 @@ def concatenateNetCDFs(input_netcdf1, input_netcdf2, output_netcdf):
     #delete intermediate files
     os.remove('tempNetCDF1.nc')
     os.remove('tempNetCDF2.nc')
+
+
+
+def subset_NLDAS_forcing(output_netcdf, leftX, topY, rightX, bottomY,
+                      startDateTime, endDateTime, dT=1, in_Xcoord = 'lon_110', in_Ycoord='lat_110',inout_timeName = 'time'):
+
+    """
+    Subsets and combines multiple netcdf files
+    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
+    should already have time dim. for ncrcat, made record dim by ncks
+    e.g.:
+    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
+    for nldas data with time dim (e.g., previously concatenated in time dim)
+    """
+    startYear = datetime.strptime(startDateTime,"%Y/%m/%d %H").year
+    endYear = datetime.strptime(endDateTime,"%Y/%m/%d %H").year
+    startMonth = datetime.strptime(startDateTime,"%Y/%m/%d %H").month
+    endMonth = datetime.strptime(endDateTime,"%Y/%m/%d %H").month
+    startDay =  datetime.strptime(startDateTime,"%Y/%m/%d %H").timetuple().tm_yday        #start date = day of year for 2010
+    endDay   =  startDay + (datetime.strptime(endDateTime,"%Y/%m/%d %H") - datetime.strptime(startDateTime,"%Y/%m/%d %H")).days          # end date = day of year for 2011 + 365
+
+    #print(startYear)
+    #print(endYear)
+
+    file_prefix = 'NLDAS_FORA0125_H.A_Monthly'
+    wsName = 'watershed'
+
+    for year in range(startYear, endYear+1):
+        for month in range(1, 13):
+            if month < 10:
+                monthS = '0'+str(month)
+            else:
+                monthS = str(month)
+            cmdString = "for i in "+file_prefix+"*"+str(year)+monthS+"*.nc; do ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
+                    +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O $i "+wsName+"_$i; done"      #+subdir+"\/"
+            callSubprocess(cmdString, 'subset nc files for year '+str(year))
+
+    cmdString = "for i in "+wsName+"*.nc; do ncks --mk_rec_dmn "+inout_timeName+" -O $i R_$i; done"
+    callSubprocess(cmdString, "intermediate netcdf with record dimension")
+
+
+    cmdString = "ncrcat -4 -H -h -O  R_"+wsName+"*.nc -o concat_"+output_netcdf                     #-H don't append input file list -h don't append history
+    callSubprocess(cmdString, "concatenate netcdf files")
+
+    hD = int(24/dT)
+    starttimeIndex = startDay * hD
+    endtimeIndex = endDay * hD
+    print(starttimeIndex)
+    print(endtimeIndex)
+    cmdString = "ncea -4 -H -O -d "+inout_timeName+","+str(starttimeIndex)+","+str(endtimeIndex)+" concat_"\
+                 +output_netcdf+" "+output_netcdf
+    callSubprocess(cmdString, 'subset netcdf in time')
+
+    #delete intermediate files
+    cmdString = "DEL "+"R_"+wsName+"*.nc"
+    #callSubprocess(cmdString, "delete intermediate files")
+    cmdString = "DEL "+wsName+"*.nc"
+    #callSubprocess(cmdString, "delete intermediate files")
+    #os.remove("R_*.nc")
+
+
 
 
 #This combines (stitches) (spatially adjacent) netcdf files accross the spatial/horizontal dimensions
