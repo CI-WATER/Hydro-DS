@@ -5,20 +5,63 @@ from collections import namedtuple
 from usu_data_service.local_settings import *
 
 DAYMET_ROOT_FILE_PATH = os.path.join(STATIC_DATA_ROOT_PATH, 'DaymetClimate')
+NLDAS_ROOT_FILE_PATH = os.path.join(STATIC_DATA_ROOT_PATH, 'NLDASClimate')
 
-STATIC_FILE_NAME_PATH_DICT = {'prcp_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'prcp_2010.nc4'),
-                              'prcp_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'prcp_2011.nc4'),
-                              'vp_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'vp_2010.nc4'),
-                              'vp_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'vp_2011.nc4'),
-                              'srad_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'srad_2010.nc4'),
-                              'srad_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'srad_2011.nc4'),
-                              'tmin_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmin_2010.nc4'),
-                              'tmin_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmin_2011.nc4'),
-                              'tmax_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmax_2010.nc4'),
-                              'tmax_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmax_2011.nc4'),
-                              'nedWesternUS.tif': os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource', 'nedWesternUS.tif'),
-                              'nlcd2011CONUS.tif': os.path.join(STATIC_DATA_ROOT_PATH, 'nlcd2011CONUS', 'nlcd2011CONUS.tif'),
-                              }
+
+startYear = 2010
+endYear = 2015
+#
+NLDASyear= ['NLDASFORA0125_H.A_Monthly_'+str(year) for year in range(startYear, endYear+1)]
+NLDASlist = []
+for year in NLDASyear:
+    NLDASlist += [year+month+'.nc' for month in ['01','02','03','04', '05','06', '07', '08','09','10','11','12'] ]
+#
+NLDASyear= ['NLDASFORA0125_H.A_Monthly_'+str(year) for year in range(startYear, endYear+1)]
+NLDASlist = []
+for year in NLDASyear:
+    NLDASlist += [year+month+'.nc' for month in ['01','02'] ]
+
+Daymetlist = []
+DaymetVars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
+####iterate through climate variables
+for var in DaymetVars:
+    Daymetlist += [var+'_'+str(year)+'.nc4' for year in range(startYear, endYear+1)]
+
+
+def get_static_data_file_path(file_name):
+
+
+    if file_name in Daymetlist:
+        return os.path.join(DAYMET_ROOT_FILE_PATH,file_name)
+    elif file_name in NLDASlist:
+        return os.path.join(NLDAS_ROOT_FILE_PATH, file_name)
+    elif file_name == 'nedWesternUS.tif':
+        return os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource', 'nedWesternUS.tif')
+    elif file_name == 'nlcd2011CONUS.tif':
+        return os.path.join(STATIC_DATA_ROOT_PATH, 'nlcd2011CONUS', 'nlcd2011CONUS.tif')
+
+    return None
+
+
+#
+# STATIC_FILE_NAME_PATH_DICT = {
+#                               'prcp_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'prcp_2010.nc4'),
+#                               'prcp_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'prcp_2011.nc4'),
+#
+#                               'prcp_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'prcp_2010.nc4'),
+#                               'prcp_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'prcp_2011.nc4'),
+#                               'vp_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'vp_2010.nc4'),
+#                               'vp_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'vp_2011.nc4'),
+#                               'srad_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'srad_2010.nc4'),
+#                               'srad_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'srad_2011.nc4'),
+#                               'tmin_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmin_2010.nc4'),
+#                               'tmin_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmin_2011.nc4'),
+#                               'tmax_2010.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmax_2010.nc4'),
+#                               'tmax_2011.nc4': os.path.join(DAYMET_ROOT_FILE_PATH, 'tmax_2011.nc4'),
+#
+#                               'nedWesternUS.tif': os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource', 'nedWesternUS.tif'),
+#                               'nlcd2011CONUS.tif': os.path.join(STATIC_DATA_ROOT_PATH, 'nlcd2011CONUS', 'nlcd2011CONUS.tif'),
+#                               }
 
 def get_static_data_files_info():
     static_file_info_object_list = _generate_static_data_file_info_object_list()
@@ -105,8 +148,13 @@ def _generate_static_data_file_info_object_list():
     return static_file_list
 
 
-def get_static_data_file_path(file_name):
-    if file_name in STATIC_FILE_NAME_PATH_DICT:
-        return STATIC_FILE_NAME_PATH_DICT[file_name]
 
-    return None
+
+# def get_static_data_file_path(file_name):
+#
+#
+#     if file_name in STATIC_FILE_NAME_PATH_DICT:
+#         return STATIC_FILE_NAME_PATH_DICT[file_name]
+#
+#     return None
+
