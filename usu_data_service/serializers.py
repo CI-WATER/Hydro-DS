@@ -74,6 +74,22 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
+
+class SubsetNLDASForcingRequestValidator(serializers.Serializer):
+    output_netcdf = serializers.CharField(required=True)
+    leftX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    topY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    rightX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    bottomY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    startDateTime = serializers.CharField(required=True)
+    endDateTime = serializers.CharField(required=True)
+    dT = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    in_Xcoord = serializers.CharField(required=True)
+    in_Ycoord = serializers.CharField(required=True)
+    inout_timeName = serializers.CharField(required=True)
+
+
+
 class DelineateWatershedAtXYRequestValidator(serializers.Serializer):
     outlet_point_x = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     outlet_point_y = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
