@@ -68,10 +68,10 @@ def project_and_resample_Array(input_array, srs_geotrs, srs_proj, Nxin, Nyin, re
     return output_array
 
 
-def subset_by_coordinate(input_nldas_File, output_netcdf, leftX, topY, rightX, bottomY, in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
+def subset_netcdf_by_coordinates(input_netcdf, output_netcdf, leftX, topY, rightX, bottomY, in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
 
     cmdString = "ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
-                    +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O "+input_nldas_File+" "+output_netcdf
+                    +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O "+input_netcdf+" "+output_netcdf
     callSubprocess(cmdString, 'subset nc files spatially')
 
 
