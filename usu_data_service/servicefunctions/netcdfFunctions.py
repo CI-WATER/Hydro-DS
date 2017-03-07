@@ -72,7 +72,8 @@ def subset_netcdf_by_coordinates(input_netcdf, output_netcdf, leftX, topY, right
 
     cmdString = "ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
                     +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O "+input_netcdf+" "+output_netcdf
-    callSubprocess(cmdString, 'subset nc files spatially')
+    subprocess_response_dict = call_subprocess(cmdString, 'subset nc files spatially')
+    return subprocess_response_dict
 
 
 
