@@ -8,7 +8,7 @@ DAYMET_ROOT_FILE_PATH = os.path.join(STATIC_DATA_ROOT_PATH, 'DaymetClimate')
 NLDAS_ROOT_FILE_PATH = os.path.join(STATIC_DATA_ROOT_PATH, 'NLDASClimate')
 
 
-startYear = 2010
+startYear = 2005
 endYear = 2015
 #
 NLDASyear= ['NLDASFORA0125_H.A_Monthly_'+str(year) for year in range(startYear, endYear+1)]
