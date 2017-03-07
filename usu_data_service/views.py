@@ -27,15 +27,24 @@ WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.
 logger = logging.getLogger(__name__)
 
 funcs = {
-
-          'subsetNLDASforcing':
+          'subsetnetcdfbycoordinates':
                 {
-                    'function_to_execute': subset_NLDAS_forcing,
+                    'function_to_execute': subset_netcdf_by_coordinates,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'subsetCoords.nc'}],
+                    'user_file_inputs': ['input_netcdf'],
+                    'user_inputs': ['leftX', 'topY', 'rightX', 'bottomY', 'in_Xcoord', 'in_Ycoord'],
+                    'validator': SubsetNetcdfByCoordinatesRequestValidator
+                },
+
+          'subsetnldasforcing':
+                {
+                    'function_to_execute': subset_nldas_forcing,
                     'file_inputs': [],
                     'file_outputs': [{'output_netcdf': 'subsetNLDAS.nc'}],
                     'user_file_inputs': [],
                     'user_inputs': ['leftX', 'topY', 'rightX', 'bottomY', 'startDateTime', 'endDateTime', 'dT', 'in_Xcoord', 'in_Ycoord', 'inout_timeName'],
-                    'validator': SubsetNLDASForcingRequestValidator
+                    'validator': SubsetNldasForcingRequestValidator
                 },
 
           'subsetrastertobbox':
