@@ -17,9 +17,6 @@ for year in NLDASyear:
     NLDASlist += [year+month+'.nc' for month in ['01','02','03','04', '05','06', '07', '08','09','10','11','12'] ]
 #
 NLDASyear= ['NLDASFORA0125_H.A_Monthly_'+str(year) for year in range(startYear, endYear+1)]
-NLDASlist = []
-for year in NLDASyear:
-    NLDASlist += [year+month+'.nc' for month in ['01','02'] ]
 
 Daymetlist = []
 DaymetVars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
