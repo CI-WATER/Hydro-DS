@@ -6,7 +6,10 @@ import collections
 def get_capabilites():
     capabilities = []
 
-    capabilities.append(_get_capability_dict(service_name='subsetNLDASforcing',
+    capabilities.append(_get_capability_dict(service_name='subsetnetcdfbycoordinates',
+                                             description='subset netCDF by spacifying spaitial coordinates'))
+
+    capabilities.append(_get_capability_dict(service_name='subsetnldasforcing',
                                              description='subset NLDAS forcing netCDF by space and time'))
 
     capabilities.append(_get_capability_dict(service_name='subsetrastertobbox',
@@ -129,7 +132,8 @@ def get_service_info(service_name):
     # for service in supported_services:
     #     services_info_dict[service] = getattr(service_info_helper_obj, 'get_%s_info' % service)
 
-    services_info_dict['subsetNLDASforcing'] = _get_subsetNLDASforcing_info
+    services_info_dict['subsetnetcdfbycoordinates'] = _get_subsetnetcdfbycoordinates_info
+    services_info_dict['subsetnldasforcing'] = _get_subsetnldasforcing_info
 
     services_info_dict['subsetrastertobbox'] = _get_susbsetrastertobbox_info
     services_info_dict['subsetrastertoreference'] = _get_subsetrastertoreference_info
@@ -198,9 +202,59 @@ def _get_capability_dict(service_name, description):
             'service_info_url': _get_service_info_url(service_name)}
 
 
+def _get_subsetnetcdfbycoordinates_info():
+    service_name = 'subsetnetcdfbycoordinates'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
 
-def _get_subsetNLDASforcing_info():
-    service_name = 'subsetNLDASforcing'
+                                            _get_param_dict(name='input_netcdf',
+                                                            description='name for the input NetCDF file',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='output_netcdf',
+                                                            description='name for the output NetCDF file',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='leftX',
+                                                           description='X-coordinate of the left boundary of the bounding box',
+                                                           required=True,
+                                                           type='float'),
+
+                                            _get_param_dict(name='topY',
+                                                           description='Y-coordinate of the top boundary of the bounding box',
+                                                           required=True,
+                                                           type='float'),
+
+                                            _get_param_dict(name='rightX',
+                                                           description='X-coordinate of the right boundary of the bounding box',
+                                                           required=True,
+                                                           type='float'),
+
+                                            _get_param_dict(name='bottomY',
+                                                           description='Y-coordinate of the bottom boundary of the bounding box',
+                                                           required=True,
+                                                           type='float'),
+
+                                            _get_param_dict(name='in_Xcoord',
+                                                            description='Name of the X coordinate of the input netCDF files.',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='in_Ycoord',
+                                                            description='Name of the Y coordinate of the input netCDF files.',
+                                                            required=True,
+                                                            type='string'),
+                                         ]
+                        },
+                        _get_json_response_format(data_dict={'output_netcdf': 'url of the output NetCDF file'})]
+            }
+
+
+
+def _get_subsetnldasforcing_info():
+    service_name = 'subsetnldasforcing'
     return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
                             'parameters': [
 
