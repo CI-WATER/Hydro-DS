@@ -68,7 +68,6 @@ def project_and_resample_Array(input_array, srs_geotrs, srs_proj, Nxin, Nyin, re
     return output_array
 
 
-
 def subset_by_coordinate(input_nldas_File, output_netcdf, leftX, topY, rightX, bottomY, in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
 
     cmdString = "ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
@@ -77,7 +76,7 @@ def subset_by_coordinate(input_nldas_File, output_netcdf, leftX, topY, rightX, b
 
 
 
-def subset_NLDAS_forcing(output_netcdf, leftX, topY, rightX, bottomY,
+def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
                       startDateTime, endDateTime, dT=1, in_Xcoord = 'lon_110', in_Ycoord='lat_110',inout_timeName = 'time'):
 
     """
