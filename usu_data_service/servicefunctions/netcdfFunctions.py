@@ -109,7 +109,7 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
                 monthS = str(month)
             input_nc_file = file_prefix+str(year)+monthS+".nc"
             ouput_nc_file = wsName + input_nc_file
-            subset_by_coordinate(input_nc_file, ouput_nc_file, leftX, topY, rightX, bottomY, in_Xcoord, in_Ycoord)
+            subset_netcdf_by_coordinates(input_nc_file, ouput_nc_file, leftX, topY, rightX, bottomY, in_Xcoord, in_Ycoord)
 
             #input_nc_file = "for i in "+file_prefix+"*"+str(year)+monthS+"*.nc; do ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
             #        +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O $i "+wsName+"_$i; done"      #+subdir+"\/"
