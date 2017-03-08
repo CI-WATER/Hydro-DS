@@ -26,7 +26,6 @@ for var in DaymetVars:
 
 def get_static_data_file_path(file_name):
 
-
     if file_name in Daymetlist:
         return os.path.join(DAYMET_ROOT_FILE_PATH,file_name)
     elif file_name in NLDASlist:
@@ -37,7 +36,6 @@ def get_static_data_file_path(file_name):
         return os.path.join(STATIC_DATA_ROOT_PATH, 'nlcd2011CONUS', 'nlcd2011CONUS.tif')
 
     return None
-
 
 #
 # STATIC_FILE_NAME_PATH_DICT = {
