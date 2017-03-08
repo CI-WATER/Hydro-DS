@@ -76,10 +76,8 @@ def subset_netcdf_by_coordinates(input_netcdf, output_netcdf, leftX, topY, right
     return subprocess_response_dict
 
 
-
 def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
                       startDateTime, endDateTime, dT=1, in_Xcoord = 'lon_110', in_Ycoord='lat_110',inout_timeName = 'time'):
-
     """
     Subsets and combines multiple netcdf files
     for nldas forcing, with multiple time steps (e.g., organized in monthly files)
@@ -94,13 +92,11 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
     endMonth = datetime.strptime(endDateTime,"%Y/%m/%d %H").month
     startDay =  datetime.strptime(startDateTime,"%Y/%m/%d %H").timetuple().tm_yday        #start date = day of year for 2010
     endDay   =  startDay + (datetime.strptime(endDateTime,"%Y/%m/%d %H") - datetime.strptime(startDateTime,"%Y/%m/%d %H")).days          # end date = day of year for 2011 + 365
-
     #print(startYear)
     #print(endYear)
 
     file_prefix = 'NLDAS_FORA0125_H.A_Monthly_'
     wsName = 'watershed_'
-
 
     for year in range(startYear, endYear+1):
         for month in range(1, 13):
@@ -110,12 +106,13 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
                 monthS = str(month)
             input_nc_file = file_prefix+str(year)+monthS+".nc"
             ouput_nc_file = wsName + input_nc_file
-            subset_netcdf_by_coordinates(input_nc_file, ouput_nc_file, leftX, topY, rightX, bottomY, in_Xcoord, in_Ycoord)
+            subprocess_response_dict = subset_netcdf_by_coordinates(input_nc_file, ouput_nc_file, leftX, topY, rightX, bottomY, in_Xcoord, in_Ycoord)
 
+    return subprocess_response_dict
             #input_nc_file = "for i in "+file_prefix+"*"+str(year)+monthS+"*.nc; do ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
             #        +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O $i "+wsName+"_$i; done"      #+subdir+"\/"
             #callSubprocess(cmdString, 'subset nc files for year '+str(year))
-
+    """
     cmdString = "for i in "+wsName+"*.nc; do ncks --mk_rec_dmn "+inout_timeName+" -O $i R_$i; done"
     callSubprocess(cmdString, "intermediate netcdf with record dimension")
 
@@ -138,6 +135,7 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
     cmdString = "DEL "+wsName+"*.nc"
     #callSubprocess(cmdString, "delete intermediate files")
     #os.remove("R_*.nc")
+    """
 
 
 
