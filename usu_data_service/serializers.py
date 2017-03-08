@@ -77,7 +77,7 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
 class ConcatenateMultipleNetCDFRequestValidator(serializers.Serializer):
     output_netcdf = serializers.CharField(required=True)
     inout_timeName = serializers.CharField(required=True)
-    input_netcdf_list = serializers.ListField(required=True)
+    #input_netcdf_list = serializers.ListField(required=True)
 
 
 class SubsetNetcdfByCoordinatesRequestValidator(InputNetCDFURLorStaticRequestValidator):
