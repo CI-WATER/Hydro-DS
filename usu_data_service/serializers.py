@@ -74,6 +74,12 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
+class ConcatenateMultipleNetCDFRequestValidator(serializers.Serializer):
+    output_netcdf = serializers.CharField(required=True)
+    inout_timeName = serializers.CharField(required=True)
+    input_netcdf_list = serializers.ListField(required=True)
+
+
 class SubsetNetcdfByCoordinatesRequestValidator(InputNetCDFURLorStaticRequestValidator):
     output_netcdf = serializers.CharField(required=True)
     leftX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)

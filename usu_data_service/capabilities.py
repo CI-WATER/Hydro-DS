@@ -6,6 +6,9 @@ import collections
 def get_capabilites():
     capabilities = []
 
+    capabilities.append(_get_capability_dict(service_name='concatenatemultiplenetcdf',
+                                             description='concatenate multiple netCDF by time'))
+
     capabilities.append(_get_capability_dict(service_name='subsetnetcdfbycoordinates',
                                              description='subset netCDF by spacifying spaitial coordinates'))
 
@@ -132,6 +135,7 @@ def get_service_info(service_name):
     # for service in supported_services:
     #     services_info_dict[service] = getattr(service_info_helper_obj, 'get_%s_info' % service)
 
+    services_info_dict['concatenatemultiplenetcdf'] = _get_concatenatemultiplenetcdf_info
     services_info_dict['subsetnetcdfbycoordinates'] = _get_subsetnetcdfbycoordinates_info
     services_info_dict['subsetnldasforcing'] = _get_subsetnldasforcing_info
 
@@ -200,6 +204,35 @@ def _get_end_point(url_sub_path):
 def _get_capability_dict(service_name, description):
     return {'service_name': service_name, 'description': description,
             'service_info_url': _get_service_info_url(service_name)}
+
+
+
+
+def _get_concatenatemultiplenetcdf_info():
+    service_name = 'concatenatemultiplenetcdf'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+
+                                            _get_param_dict(name='output_netcdf',
+                                                            description='name for the output NetCDF file',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='inout_timeName',
+                                                            description='Name of the time coordinate and variable of the input/output netCDF files.',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='input_netcdf_list',
+                                                            description='List of the input netCDF files.',
+                                                            required=True,
+                                                            type='list'), # 'string'),
+                                          ]
+                        },
+                        _get_json_response_format(data_dict={'output_netcdf': 'url of the output NetCDF file'})]
+            }
+
+
 
 
 def _get_subsetnetcdfbycoordinates_info():

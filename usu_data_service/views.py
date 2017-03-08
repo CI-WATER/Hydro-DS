@@ -27,6 +27,16 @@ WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.
 logger = logging.getLogger(__name__)
 
 funcs = {
+          'concatenatemultiplenetcdf':
+                {
+                   'function_to_execute': concatenate_multiple_netCDF,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'concatenatedMultiple.nc'}],
+                   'user_file_inputs': 'input_netcdf_list', # ['input_netcdf1', 'input_netcdf2'],
+                   'user_inputs': ['inout_timeName'],
+                   'validator': ConcatenateMultipleNetCDFRequestValidator
+                },
+
           'subsetnetcdfbycoordinates':
                 {
                     'function_to_execute': subset_netcdf_by_coordinates,

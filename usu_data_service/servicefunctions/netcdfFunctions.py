@@ -76,6 +76,60 @@ def subset_netcdf_by_coordinates(input_netcdf, output_netcdf, leftX, topY, right
     return subprocess_response_dict
 
 
+def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_netcdf_list=[]):
+    """
+    Subsets and combines multiple netcdf files
+    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
+    should already have time dim. for ncrcat, made record dim by ncks
+    e.g.:
+    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
+    for nldas data with time dim (e.g., previously concatenated in time dim)
+    """
+    input_string = " "
+    for fileI in input_netcdf_list:
+        input_string = input_string + " R_"+fileI + " "
+        cmdString = "ncks --mk_rec_dmn " + inout_timeName + " -O " + fileI + " R_"+fileI
+        subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
+        if subprocess_response_dict['success'] == 'False':
+            return subprocess_response_dict
+
+    cmdString = "ncrcat -4 -H -h -O  "+input_string+" -o "+output_netcdf                     #-H don't append input file list -h don't append history
+    subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
+
+    # delete intermediate files
+    for fileI in input_netcdf_list:
+        delete_file = "R_"+fileI
+        os.remove(delete_file)
+
+    return subprocess_response_dict
+
+
+def subset_netCDF_by_time(input_netcdf, output_netcdf, startDateTime, endDateTime, dT=1, inout_timeName='time'):
+    """
+    Subsets and combines multiple netcdf files
+    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
+    should already have time dim. for ncrcat, made record dim by ncks
+    e.g.:
+    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
+    for nldas data with time dim (e.g., previously concatenated in time dim)
+    """
+    startDay = datetime.strptime(startDateTime, "%Y/%m/%d %H").timetuple().tm_yday  # start date = day of year for 2010
+    endDay = startDay + (datetime.strptime(endDateTime, "%Y/%m/%d %H") - datetime.strptime(startDateTime, "%Y/%m/%d %H")).days  # end date = day of year for 2011 + 365
+    # print(startDay)
+    # print(endDay)
+
+    hD = int(24/dT)
+    starttimeIndex = startDay * hD
+    endtimeIndex = endDay * hD
+    print(starttimeIndex)
+    print(endtimeIndex)
+    cmdString = "ncea -4 -H -O -d "+inout_timeName+","+str(starttimeIndex)+","+str(endtimeIndex)+" "\
+                 +input_netcdf+" "+output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'subset netcdf in time')
+
+    return subprocess_response_dict
+
+
 def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
                       startDateTime, endDateTime, dT=1, in_Xcoord = 'lon_110', in_Ycoord='lat_110',inout_timeName = 'time'):
     """
@@ -112,7 +166,7 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
             #input_nc_file = "for i in "+file_prefix+"*"+str(year)+monthS+"*.nc; do ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
             #        +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O $i "+wsName+"_$i; done"      #+subdir+"\/"
             #callSubprocess(cmdString, 'subset nc files for year '+str(year))
-    """
+
     cmdString = "for i in "+wsName+"*.nc; do ncks --mk_rec_dmn "+inout_timeName+" -O $i R_$i; done"
     callSubprocess(cmdString, "intermediate netcdf with record dimension")
 
@@ -135,8 +189,6 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
     cmdString = "DEL "+wsName+"*.nc"
     #callSubprocess(cmdString, "delete intermediate files")
     #os.remove("R_*.nc")
-    """
-
 
 
 def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, varName, reference_netcdf, varName_ref, output_netcdf,
