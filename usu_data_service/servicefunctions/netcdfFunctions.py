@@ -99,7 +99,7 @@ def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_ne
     subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
 
     # delete intermediate files
-    os.remove(input_string)
+    #os.remove(input_string)
 
     return subprocess_response_dict
 
