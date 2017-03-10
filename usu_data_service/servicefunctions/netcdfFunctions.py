@@ -120,8 +120,8 @@ def subset_netCDF_by_datetime(input_netcdf, output_netcdf, startDateTime, endDat
     hD = int(24/dT)
     starttimeIndex = startDay * hD
     endtimeIndex = endDay * hD
-    print(starttimeIndex)
-    print(endtimeIndex)
+    #print(starttimeIndex)
+    #print(endtimeIndex)
     cmdString = "ncea -4 -H -O -d "+inout_timeName+","+str(starttimeIndex)+","+str(endtimeIndex)+" "\
                  +input_netcdf+" "+output_netcdf
     subprocess_response_dict = call_subprocess(cmdString, 'subset netcdf in time')
