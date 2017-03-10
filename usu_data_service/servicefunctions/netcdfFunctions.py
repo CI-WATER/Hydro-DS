@@ -83,10 +83,10 @@ def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_ne
     input_string = ""
     input_netcdf_list = json.loads(input_netcdf_list_json)
     ij=0
-    for key in input_netcdf_list:
+    for fileI in input_netcdf_list:
         #file_full_path = input_netcdf_list[key]
         #path_parts = file_full_path.split('/')
-        fileI = input_netcdf_list[key] #path_parts[-1]
+        #fileI = input_netcdf_list[key] #path_parts[-1]
         ij = ij+1
         intermediate_file = "R_Intermediate_netcdf_file"+str(ij)+".nc"
         input_string = input_string + " " +intermediate_file
