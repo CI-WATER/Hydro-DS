@@ -223,10 +223,10 @@ def _get_concatenatemultiplenetcdf_info():
                                                             required=True,
                                                             type='string'),
 
-                                            _get_param_dict(name='input_netcdf_list',
-                                                            description='List of the input netCDF files.',
+                                            _get_param_dict(name='input_netcdf_list_json',
+                                                            description='Json List of the input netCDF files.',
                                                             required=True,
-                                                            type='list'), # 'string'),
+                                                            type='string'),
                                           ]
                         },
                         _get_json_response_format(data_dict={'output_netcdf': 'url of the output NetCDF file'})]

@@ -11,6 +11,7 @@ import netCDF4
 from datetime import datetime
 from scipy import interpolate
 from .utils import *
+import json
 
 
 def convert_netcdf_units(input_netcdf, output_netcdf, variable_name, variable_new_units=" ", multiplier_factor=1,
@@ -76,19 +77,20 @@ def subset_netcdf_by_coordinates(input_netcdf, output_netcdf, leftX, topY, right
     return subprocess_response_dict
 
 
-def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_netcdf_list=[]):
+def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_netcdf_list_json=None):
     """
-    Subsets and combines multiple netcdf files
-    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
-    should already have time dim. for ncrcat, made record dim by ncks
-    e.g.:
-    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
-    for nldas data with time dim (e.g., previously concatenated in time dim)
     """
-    input_string = " "
-    for fileI in input_netcdf_list:
-        input_string = input_string + " R_"+fileI + " "
-        cmdString = "ncks --mk_rec_dmn " + inout_timeName + " -O " + fileI + " R_"+fileI
+    input_string = ""
+    input_netcdf_list = json.loads(input_netcdf_list_json)
+    ij=0
+    for key in input_netcdf_list:
+        #file_full_path = input_netcdf_list[key]
+        #path_parts = file_full_path.split('/')
+        fileI = input_netcdf_list[key] #path_parts[-1]
+        ij = ij+1
+        intermediate_file = "R_Intermediate_netcdf_file"+str(ij)+".nc"
+        input_string = input_string + " " +intermediate_file
+        cmdString = "ncks --mk_rec_dmn " + inout_timeName + " -O " + fileI + " " + intermediate_file
         subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
         if subprocess_response_dict['success'] == 'False':
             return subprocess_response_dict
@@ -97,9 +99,7 @@ def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_ne
     subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
 
     # delete intermediate files
-    for fileI in input_netcdf_list:
-        delete_file = "R_"+fileI
-        os.remove(delete_file)
+    os.remove(input_string)
 
     return subprocess_response_dict
 
@@ -1038,17 +1038,17 @@ def raster_to_netCDF(input_raster, output_netcdf):
     callSubprocess(cmdString, 'raster to netcdf')
 
 #This concatenates netcdf files along the time dimension
-def concatenate_netCDF(input_netcdf1, input_netcdf2, output_netcdf):
+def concatenate_netCDF(input_netcdf1, input_netcdf2, output_netcdf):  #, inout_timeName = 'time'):
     """To  Do: may need to specify output no-data value
     """
-    cmdString = "ncks --mk_rec_dmn time "+input_netcdf1+" tempNetCDF1.nc"
+    cmdString = "ncks --mk_rec_dmn  time "+input_netcdf1+" tempNetCDF1.nc"
     callSubprocess(cmdString, "intermediate netcdf with record dimension")
-    cmdString = "ncks --mk_rec_dmn time "+input_netcdf2+" tempNetCDF2.nc"
+    cmdString = "ncks --mk_rec_dmn  time "+input_netcdf2+" tempNetCDF2.nc"
     subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
     #
-    cmdString = "ncrcat -4 tempNetCDF1.nc tempNetCDF2.nc "+output_netcdf
+    cmdString = "ncrcat -4 -H -h tempNetCDF1.nc tempNetCDF2.nc "+output_netcdf
     subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
 
     #delete intermediate files

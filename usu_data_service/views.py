@@ -32,7 +32,8 @@ funcs = {
                    'function_to_execute': concatenate_multiple_netCDF,
                    'file_inputs': [],
                    'file_outputs': [{'output_netcdf': 'concatenatedMultiple.nc'}],
-                   'user_file_inputs': 'input_netcdf_list', # ['input_netcdf1', 'input_netcdf2'],
+                   'user_file_inputs': [],
+                   'user_list_inputs': 'input_netcdf_list_json', # ['input_netcdf1', 'input_netcdf2'],
                    'user_inputs': ['inout_timeName'],
                    'validator': ConcatenateMultipleNetCDFRequestValidator
                 },
@@ -481,9 +482,29 @@ class RunService(APIView):
                 subprocparams[p] = static_data_file_path
                 logger.debug('input_static_file_path:' + static_data_file_path)
 
+        #list from json string
+        if func == 'concatenatemultiplenetcdf':
+            pdict = params['user_list_inputs']
+            #print(pdict)
+            input_fileList = request_validator.validated_data[pdict]
+            #print(input_fileList)
+            user_input_json_list = json.loads(input_fileList)
+            for p in user_input_json_list:
+                #input_file = request_validator.validated_data[p]
+                input_file = user_input_json_list[p]
+                if is_input_file_url_path(input_file):
+                    uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path, input_file)
+                                                                                     #request_validator.validated_data[p])
+                    #subprocparams[p] = uuid_input_file_path
+                    logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
+                else:
+                    logger.debug('error file doesnnot exisit in user space:' + input_file)
+            subprocparams[pdict] = input_fileList
+
         # execute the function
         result = params['function_to_execute'](**subprocparams)
         logger.debug('result from function ({function_name}):{result}'.format(function_name=func, result=result))
+
 
         # process function output results  # TODO remove this
         data = []
