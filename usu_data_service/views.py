@@ -489,16 +489,16 @@ class RunService(APIView):
             input_fileList = request_validator.validated_data[pdict]
             #print(input_fileList)
             user_input_json_list = json.loads(input_fileList)
-            for p in user_input_json_list:
+            for input_file in user_input_json_list:
                 #input_file = request_validator.validated_data[p]
-                input_file = user_input_json_list[p]
+                #input_file = user_input_json_list[p]
                 if is_input_file_url_path(input_file):
                     uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path, input_file)
                                                                                      #request_validator.validated_data[p])
                     #subprocparams[p] = uuid_input_file_path
                     logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
                 else:
-                    logger.debug('error file doesnnot exisit in user space:' + input_file)
+                    logger.debug('error file does not exisit in user space: ' + input_file)
             subprocparams[pdict] = input_fileList
 
         # execute the function
