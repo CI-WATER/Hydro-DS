@@ -6,6 +6,9 @@ import collections
 def get_capabilites():
     capabilities = []
 
+    capabilities.append(_get_capability_dict(service_name='computeaverageoftwonetcdfvars',
+                                             description='Compute average of two netCDF variables'))
+
     capabilities.append(_get_capability_dict(service_name='subsetprojecttimespaceresamplenetcdftoreferencenetcdf',
                                              description='subset NetCDF, project and resample in time and space to reference netcdf'))
 
@@ -141,6 +144,7 @@ def get_service_info(service_name):
     # for service in supported_services:
     #     services_info_dict[service] = getattr(service_info_helper_obj, 'get_%s_info' % service)
 
+    services_info_dict['computeaverageoftwonetcdfvars'] = _get_computeaverageoftwonetcdfvars_info
     services_info_dict['concatenatemultiplenetcdf'] = _get_subsetprojecttimespaceresamplenetcdftoreferencenetcdf_info
     services_info_dict['concatenatemultiplenetcdf'] = _get_subsetnetcdfbydatetime_info
     services_info_dict['concatenatemultiplenetcdf'] = _get_concatenatemultiplenetcdf_info
@@ -212,6 +216,54 @@ def _get_end_point(url_sub_path):
 def _get_capability_dict(service_name, description):
     return {'service_name': service_name, 'description': description,
             'service_info_url': _get_service_info_url(service_name)}
+
+def _get_computeaverageoftwonetcdfvars_info():
+    service_name = 'computeaverageoftwonetcdfvars'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                            _get_param_dict(name='input_netcdf1',
+                                                            description='name for the 1st input NetCDF file',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='input_netcdf2',
+                                                            description='name for the 2nd input NetCDF file',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='output_netcdf',
+                                                            description='name for the output NetCDF file',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='varName1',
+                                                            description='name for the 1st variable',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='varName2',
+                                                            description='name for the 2nd variable',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='varNameO',
+                                                            description='name for the output variable',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='varOut_unit',
+                                                            description='name for the output variable unit',
+                                                            required=True,
+                                                            type='string'),
+
+                                            _get_param_dict(name='varOut_longName',
+                                                            description='long name for the output variable',
+                                                            required=True,
+                                                            type='string'),
+                                          ]
+                        },
+                        _get_json_response_format(data_dict={'output_netcdf': 'url of the output NetCDF file'})]
+            }
 
 
 def _get_subsetprojecttimespaceresamplenetcdftoreferencenetcdf_info():

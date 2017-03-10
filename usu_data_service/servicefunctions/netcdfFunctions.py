@@ -14,8 +14,7 @@ from .utils import *
 import json
 
 
-def convert_netcdf_units(input_netcdf, output_netcdf, variable_name, variable_new_units=" ", multiplier_factor=1,
-                         offset=0):
+def convert_netcdf_units(input_netcdf, output_netcdf, variable_name, variable_new_units=" ", multiplier_factor=1, offset=0):
     """
     does unit conversion for a variable in netcdf file
     :param input_netcdf: input
@@ -130,67 +129,6 @@ def subset_netCDF_by_datetime(input_netcdf, output_netcdf, startDateTime, endDat
     return subprocess_response_dict
 
 
-def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
-                      startDateTime, endDateTime, dT=1, in_Xcoord = 'lon_110', in_Ycoord='lat_110',inout_timeName = 'time'):
-    """
-    Subsets and combines multiple netcdf files
-    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
-    should already have time dim. for ncrcat, made record dim by ncks
-    e.g.:
-    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
-    for nldas data with time dim (e.g., previously concatenated in time dim)
-    """
-    startYear = datetime.strptime(startDateTime,"%Y/%m/%d %H").year
-    endYear = datetime.strptime(endDateTime,"%Y/%m/%d %H").year
-    startMonth = datetime.strptime(startDateTime,"%Y/%m/%d %H").month
-    endMonth = datetime.strptime(endDateTime,"%Y/%m/%d %H").month
-    startDay =  datetime.strptime(startDateTime,"%Y/%m/%d %H").timetuple().tm_yday        #start date = day of year for 2010
-    endDay   =  startDay + (datetime.strptime(endDateTime,"%Y/%m/%d %H") - datetime.strptime(startDateTime,"%Y/%m/%d %H")).days          # end date = day of year for 2011 + 365
-    #print(startYear)
-    #print(endYear)
-
-    file_prefix = 'NLDAS_FORA0125_H.A_Monthly_'
-    wsName = 'watershed_'
-
-    for year in range(startYear, endYear+1):
-        for month in range(1, 13):
-            if month < 10:
-                monthS = '0'+str(month)
-            else:
-                monthS = str(month)
-            input_nc_file = file_prefix+str(year)+monthS+".nc"
-            ouput_nc_file = wsName + input_nc_file
-            subprocess_response_dict = subset_netcdf_by_coordinates(input_nc_file, ouput_nc_file, leftX, topY, rightX, bottomY, in_Xcoord, in_Ycoord)
-
-    return subprocess_response_dict
-            #input_nc_file = "for i in "+file_prefix+"*"+str(year)+monthS+"*.nc; do ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
-            #        +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O $i "+wsName+"_$i; done"      #+subdir+"\/"
-            #callSubprocess(cmdString, 'subset nc files for year '+str(year))
-
-    cmdString = "for i in "+wsName+"*.nc; do ncks --mk_rec_dmn "+inout_timeName+" -O $i R_$i; done"
-    callSubprocess(cmdString, "intermediate netcdf with record dimension")
-
-
-    cmdString = "ncrcat -4 -H -h -O  R_"+wsName+"*.nc -o concat_"+output_netcdf                     #-H don't append input file list -h don't append history
-    callSubprocess(cmdString, "concatenate netcdf files")
-
-    hD = int(24/dT)
-    starttimeIndex = startDay * hD
-    endtimeIndex = endDay * hD
-    print(starttimeIndex)
-    print(endtimeIndex)
-    cmdString = "ncea -4 -H -O -d "+inout_timeName+","+str(starttimeIndex)+","+str(endtimeIndex)+" concat_"\
-                 +output_netcdf+" "+output_netcdf
-    callSubprocess(cmdString, 'subset netcdf in time')
-
-    #delete intermediate files
-    cmdString = "DEL "+"R_"+wsName+"*.nc"
-    #callSubprocess(cmdString, "delete intermediate files")
-    cmdString = "DEL "+wsName+"*.nc"
-    #callSubprocess(cmdString, "delete intermediate files")
-    #os.remove("R_*.nc")
-
-
 def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, reference_netcdf, output_netcdf, inout_varName, ref_varName,
         in_epsgCode=None, tSampling_interval=3, start_Time = 0.0, dTin = 1.0,
         inout_TimeName = 'time', time_unitString ='hours since 2010-10-01 00:00:00 UTC', in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
@@ -217,7 +155,7 @@ def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, ref
     srs_data = None
 
     #Add dummy dimensions and variables
-    temp_netcdf = "temp_"+output_netcdf
+    temp_netcdf = "temp_timespaceResample_"+inout_varName+".nc"
     cmdString = "nccopy -4  "+reference_netcdf+" "+temp_netcdf             #output_netcdf
     callSubprocess(cmdString, 'copy netcdf with dimensions')
 
@@ -282,11 +220,11 @@ def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, ref
     ncIn.close()
     ncOut.close()
     #delete temp netcdf file
-    #os.remove(temp_netcdf)
+    os.remove(temp_netcdf)
 
 
-
-def compute_average_windSpeed(input_netcdfU, varNameU, input_netcdfV, varNameV, output_netcdfW, varNameW ):            #output_netcdfVP, varNameVP,
+def compute_average_of_two_netCDF_vars(input_netcdf1, input_netcdf2, output_netcdf, varName1, varName2,  varNameO,
+                                       varOut_unit = 'm/s', varOut_longName='Average wind speed at height 10 m'):            #output_netcdfVP, varNameVP,
     """This re-grids a netcdf to target/reference resolution
     Input coordinates are time, y, x
     Warning: Works only if the target boundary is within the input boundary & the coordinates directions are
@@ -298,33 +236,33 @@ def compute_average_windSpeed(input_netcdfU, varNameU, input_netcdfV, varNameV, 
     callSubprocess(cmdString, 'copy netcdf with dimensions')"""
 
     #delete old variable
-    cmdString = "ncks -4 -C -O -x -v "+varNameU+" "+input_netcdfU+" "+output_netcdfW
+    cmdString = "ncks -4 -C -O -x -v "+varName1+" "+input_netcdf1+" "+output_netcdf
     callSubprocess(cmdString, 'delete old/reference variable')
 
-    ncInU = netCDF4.Dataset(input_netcdfU,"r") # format='NETCDF4')
-    vardataType = ncInU.variables[varNameU].datatype
+    ncInU = netCDF4.Dataset(input_netcdf1,"r") # format='NETCDF4')
+    vardataType = ncInU.variables[varName1].datatype
     ref_grid_mapping = 'grid mmapping'    #getattr(ncInU.variables[varNameU],'grid_mapping')
     timeLen = len(ncInU.dimensions['time'])
 
-    ncInV = netCDF4.Dataset(input_netcdfV,"r") # format='NETCDF4')
+    ncInV = netCDF4.Dataset(input_netcdf2,"r") # format='NETCDF4')
 
-    ncOut = netCDF4.Dataset(output_netcdfW,"r+", format='NETCDF4')
-    ncOut.createVariable(varNameW,vardataType,('time','y','x',))
-    attDict = {'name':varNameW, 'long_name':'Average wind speed at height 10 m'}
-    attDict['units'] = 'm/s'
+    ncOut = netCDF4.Dataset(output_netcdf,"r+", format='NETCDF4')
+    ncOut.createVariable(varNameO,vardataType,('time','y','x',))
+    attDict = {'name':varNameO, 'long_name':varOut_longName}
+    attDict['units'] = varOut_unit
     attDict['grid_mapping'] = ref_grid_mapping
-    ncOut.variables[varNameW].setncatts(attDict)
+    ncOut.variables[varNameO].setncatts(attDict)
 
     #varin = numpy.zeros((len(yin),len(xin)),dtype=vardataType)
     #varout = numpy.zeros((len(yout),len(xout)),dtype=vardataType)
     for tk in range(int(timeLen-1)):
-        varinU = ncInU.variables[varNameU][tk,:,:]
-        varinV = ncInV.variables[varNameV][tk,:,:]
+        varinU = ncInU.variables[varName1][tk,:,:]
+        varinV = ncInV.variables[varName2][tk,:,:]
         Wave1 = varinU*varinU
         Wave2 = varinV*varinV
         Wave3 = Wave1+Wave2
         Wave = numpy.sqrt(Wave3)
-        ncOut.variables[varNameW][tk,:,:] = Wave[:,:]
+        ncOut.variables[varNameO][tk,:,:] = Wave[:,:]
 
     ncInU.close()
     ncInV.close()
@@ -333,6 +271,65 @@ def compute_average_windSpeed(input_netcdfU, varNameU, input_netcdfV, varNameV, 
     #os.remove(temp_netcdf)
 
 
+def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
+                      startDateTime, endDateTime, dT=1, in_Xcoord = 'lon_110', in_Ycoord='lat_110',inout_timeName = 'time'):
+    """
+    Subsets and combines multiple netcdf files
+    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
+    should already have time dim. for ncrcat, made record dim by ncks
+    e.g.:
+    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
+    for nldas data with time dim (e.g., previously concatenated in time dim)
+    """
+    startYear = datetime.strptime(startDateTime,"%Y/%m/%d %H").year
+    endYear = datetime.strptime(endDateTime,"%Y/%m/%d %H").year
+    startMonth = datetime.strptime(startDateTime,"%Y/%m/%d %H").month
+    endMonth = datetime.strptime(endDateTime,"%Y/%m/%d %H").month
+    startDay =  datetime.strptime(startDateTime,"%Y/%m/%d %H").timetuple().tm_yday        #start date = day of year for 2010
+    endDay   =  startDay + (datetime.strptime(endDateTime,"%Y/%m/%d %H") - datetime.strptime(startDateTime,"%Y/%m/%d %H")).days          # end date = day of year for 2011 + 365
+    #print(startYear)
+    #print(endYear)
+
+    file_prefix = 'NLDAS_FORA0125_H.A_Monthly_'
+    wsName = 'watershed_'
+
+    for year in range(startYear, endYear+1):
+        for month in range(1, 13):
+            if month < 10:
+                monthS = '0'+str(month)
+            else:
+                monthS = str(month)
+            input_nc_file = file_prefix+str(year)+monthS+".nc"
+            ouput_nc_file = wsName + input_nc_file
+            subprocess_response_dict = subset_netcdf_by_coordinates(input_nc_file, ouput_nc_file, leftX, topY, rightX, bottomY, in_Xcoord, in_Ycoord)
+
+    return subprocess_response_dict
+            #input_nc_file = "for i in "+file_prefix+"*"+str(year)+monthS+"*.nc; do ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
+            #        +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O $i "+wsName+"_$i; done"      #+subdir+"\/"
+            #callSubprocess(cmdString, 'subset nc files for year '+str(year))
+
+    cmdString = "for i in "+wsName+"*.nc; do ncks --mk_rec_dmn "+inout_timeName+" -O $i R_$i; done"
+    callSubprocess(cmdString, "intermediate netcdf with record dimension")
+
+
+    cmdString = "ncrcat -4 -H -h -O  R_"+wsName+"*.nc -o concat_"+output_netcdf                     #-H don't append input file list -h don't append history
+    callSubprocess(cmdString, "concatenate netcdf files")
+
+    hD = int(24/dT)
+    starttimeIndex = startDay * hD
+    endtimeIndex = endDay * hD
+    print(starttimeIndex)
+    print(endtimeIndex)
+    cmdString = "ncea -4 -H -O -d "+inout_timeName+","+str(starttimeIndex)+","+str(endtimeIndex)+" concat_"\
+                 +output_netcdf+" "+output_netcdf
+    callSubprocess(cmdString, 'subset netcdf in time')
+
+    #delete intermediate files
+    cmdString = "DEL "+"R_"+wsName+"*.nc"
+    #callSubprocess(cmdString, "delete intermediate files")
+    cmdString = "DEL "+wsName+"*.nc"
+    #callSubprocess(cmdString, "delete intermediate files")
+    #os.remove("R_*.nc")
 
 
 def project_subset_and_resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable_name, output_netcdf):

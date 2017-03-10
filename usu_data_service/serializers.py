@@ -74,6 +74,17 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
+class ComputeAverageOfTwoNetCDFVarsRequestValidator(serializers.Serializer):
+    input_netcdf1 = serializers.URLField(required=True)
+    input_netcdf2 = serializers.URLField(required=True)
+    output_netcd = serializers.CharField(required=False)
+    varName1 = serializers.CharField(required=False)
+    varName2 = serializers.CharField(required=False)
+    varNameO = serializers.CharField(required=False)
+    varOut_unit = serializers.CharField(required=False)
+    varOut_longName = serializers.CharField(required=False)
+
+
 class SubsetProjectTimeSpaceResampleNetCDFToReferenceNetCDF(InputNetCDFURLorStaticRequestValidator):
     reference_netcdf = serializers.CharField(required=True)
     output_netcdf = serializers.CharField(required=True)

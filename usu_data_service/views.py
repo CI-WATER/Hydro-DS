@@ -28,6 +28,16 @@ logger = logging.getLogger(__name__)
 
 funcs = {
 
+          'computeaverageoftwonetcdfvars':
+                {
+                    'function_to_execute': compute_average_of_two_netCDF_vars,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'averageTwonetCDFs.nc'}],
+                    'user_file_inputs': ['input_netcdf1', 'input_netcdf2'],
+                    'user_inputs': ['varName1', 'varName2',  'varNameO', 'varOut_unit', 'varOut_longName'],
+                    'validator': ComputeAverageOfTwoNetCDFVarsRequestValidator
+                },
+
           'subsetprojecttimespaceresamplenetcdftoreferencenetcdf':
                 {
                     'function_to_execute': subset_project_timespaceResample_netCDF_to_referenceNetCDF,
