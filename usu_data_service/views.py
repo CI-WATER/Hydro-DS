@@ -27,6 +27,28 @@ WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.
 logger = logging.getLogger(__name__)
 
 funcs = {
+
+          'subsetprojecttimespaceresamplenetcdftoreferencenetcdf':
+                {
+                    'function_to_execute': subset_project_timespaceResample_netCDF_to_referenceNetCDF,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'subsetprojSpaceTimeResample.nc'}],
+                    'user_file_inputs': ['input_netcdf', 'reference_netcdf'],
+                    'user_inputs': ['inout_varName', 'ref_varName', 'in_epsgCode', 'tSampling_interval',
+                                    'start_Time', 'dTin', 'inout_TimeName', 'time_unitString', 'in_Xcoord', 'in_Ycoord'],
+                    'validator': SubsetProjectTimeSpaceResampleNetCDFToReferenceNetCDF
+                },
+
+          'subsetnetcdfbydatetime':
+                {
+                    'function_to_execute': subset_netCDF_by_datetime,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'subsetDateTime.nc'}],
+                    'user_file_inputs': ['input_netcdf'],
+                    'user_inputs': ['startDateTime', 'endDateTime', 'dT', 'inout_timeName'],
+                    'validator': SubsetNetCDFbyDateTimeRequestValidator
+                },
+
           'concatenatemultiplenetcdf':
                 {
                    'function_to_execute': concatenate_multiple_netCDF,

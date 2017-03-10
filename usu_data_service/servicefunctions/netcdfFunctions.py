@@ -104,7 +104,7 @@ def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_ne
     return subprocess_response_dict
 
 
-def subset_netCDF_by_time(input_netcdf, output_netcdf, startDateTime, endDateTime, dT=1, inout_timeName='time'):
+def subset_netCDF_by_datetime(input_netcdf, output_netcdf, startDateTime, endDateTime, dT=1, inout_timeName='time'):
     """
     Subsets and combines multiple netcdf files
     for nldas forcing, with multiple time steps (e.g., organized in monthly files)
@@ -191,9 +191,10 @@ def subset_nldas_forcing(output_netcdf, leftX, topY, rightX, bottomY,
     #os.remove("R_*.nc")
 
 
-def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, varName, reference_netcdf, varName_ref, output_netcdf,
-            in_epsgCode=None, tSampling_interval=3, start_Time = 0.0,dTin = 1.0, time_unitString ='hours since 2010-10-01 00:00:00 UTC',
-                                                               in_Time = 'time', in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
+def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, reference_netcdf, output_netcdf, inout_varName, ref_varName,
+        in_epsgCode=None, tSampling_interval=3, start_Time = 0.0, dTin = 1.0,
+        inout_TimeName = 'time', time_unitString ='hours since 2010-10-01 00:00:00 UTC', in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
+
     """This re-grids a netcdf to target/reference resolution
     dTin = input time step; target time step = tSampling_interval * dTin
     Input coordinates are time, y, x
@@ -202,7 +203,7 @@ def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, va
     #epsg=4326
     # Read input geo information
     #srs_data = gdal.Open(input_netcdf, GA_ReadOnly)
-    srs_data = gdal.Open('NetCDF:"'+input_netcdf+'":'+varName)
+    srs_data = gdal.Open('NetCDF:"'+input_netcdf+'":'+inout_varName)
     srs_geotrs = srs_data.GetGeoTransform()
     Nxin = srs_data.RasterXSize
     Nyin = srs_data.RasterYSize
@@ -223,9 +224,9 @@ def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, va
     ncIn = netCDF4.Dataset(input_netcdf,"r") # format='NETCDF4')
     xin = ncIn.variables[in_Xcoord][:]
     yin = ncIn.variables[in_Ycoord][:]
-    timeLen = len(ncIn.dimensions[in_Time])
+    timeLen = len(ncIn.dimensions[inout_TimeName])
     dataType = ncIn.variables[in_Xcoord].datatype               # data type for time variable same as x variable
-    vardataType = ncIn.variables[varName].datatype
+    vardataType = ncIn.variables[inout_varName].datatype
     tin = numpy.zeros(int(timeLen/tSampling_interval),dtype=dataType)
     for tk in range(int(timeLen/tSampling_interval)):
         tin[tk] = start_Time + tk*dTin*tSampling_interval
@@ -233,24 +234,24 @@ def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, va
     ncOut = netCDF4.Dataset(temp_netcdf,"r+", format='NETCDF4')
     xout = ncOut.variables['x'][:]
     yout = ncOut.variables['y'][:]
-    ref_grid_mapping = getattr(ncOut.variables[varName_ref],'grid_mapping')
-    ncOut.createDimension(in_Time,timeLen/tSampling_interval)
-    ncOut.createVariable(in_Time,dataType,(in_Time,))
-    ncOut.variables[in_Time][:] = tin[:]
-    ncOut.createVariable(varName,vardataType,(in_Time,'y','x',))
+    ref_grid_mapping = getattr(ncOut.variables[ref_varName],'grid_mapping')
+    ncOut.createDimension(inout_TimeName,timeLen/tSampling_interval)
+    ncOut.createVariable(inout_TimeName,dataType,(inout_TimeName,))
+    ncOut.variables[inout_TimeName][:] = tin[:]
+    ncOut.createVariable(inout_varName,vardataType,(inout_TimeName,'y','x',))
 
     #Copy attributes
-    varAtts = ncIn.variables[varName].ncattrs()
+    varAtts = ncIn.variables[inout_varName].ncattrs()
     attDict = dict.fromkeys(varAtts)
     grid_map_set = False
     for attName in varAtts:
-        attDict[attName] = getattr(ncIn.variables[varName],attName)
+        attDict[attName] = getattr(ncIn.variables[inout_varName],attName)
         if attName == 'grid_mapping':
             attDict[attName] = ref_grid_mapping
             grid_map_set = True
     if grid_map_set == False:                        #no attribute grid-map in input variable attributes
         attDict['grid_mapping'] = ref_grid_mapping
-    ncOut.variables[varName].setncatts(attDict)
+    ncOut.variables[inout_varName].setncatts(attDict)
 
     """tAtts = ncIn.variables[in_Time].ncattrs()
     attDict = dict.fromkeys(tAtts)
@@ -259,10 +260,10 @@ def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, va
     """
     attDict = {'calendar':'standard', 'long_name':'time'}
     attDict['units'] = time_unitString
-    ncOut.variables[in_Time].setncatts(attDict)
+    ncOut.variables[inout_TimeName].setncatts(attDict)
     ncOut.close()
     #delete old variables
-    cmdString = "ncks -4 -C -O -x -v "+varName_ref+" "+temp_netcdf+" "+output_netcdf
+    cmdString = "ncks -4 -C -O -x -v "+ref_varName+" "+temp_netcdf+" "+output_netcdf
     callSubprocess(cmdString, 'delete old/reference variable')
 
     #re-open file to write re-gridded data
@@ -272,12 +273,12 @@ def project_subset_and_resample_netCDF_to_referenceNetCDF_NLDAS(input_netcdf, va
     for tk in range(int(timeLen/tSampling_interval) - 1):
         varout[:,:] = 0
         for tkin in range(tSampling_interval):
-            varin[:,:] = ncIn.variables[varName][tk*tSampling_interval+tkin,:,:]
+            varin[:,:] = ncIn.variables[inout_varName][tk*tSampling_interval+tkin,:,:]
             #Because gdal and netCDF4 (and NCO) read the data array in (y-) reverse order, need to adjust orientation
             varin_rev = varin[::-1]
             varout[:,:] = varout[:,:] + project_and_resample_Array(varin_rev, srs_geotrs, srs_projt, Nxin, Nyin, reference_netcdf)
         varout[:,:] = varout[:,:] / tSampling_interval
-        ncOut.variables[varName][tk,:,:] = varout[::-1]         # reverse back the array for netCDF4
+        ncOut.variables[inout_varName][tk,:,:] = varout[::-1]         # reverse back the array for netCDF4
     ncIn.close()
     ncOut.close()
     #delete temp netcdf file

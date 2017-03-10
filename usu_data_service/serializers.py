@@ -74,6 +74,29 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
         return value
 
 
+class SubsetProjectTimeSpaceResampleNetCDFToReferenceNetCDF(InputNetCDFURLorStaticRequestValidator):
+    reference_netcdf = serializers.CharField(required=True)
+    output_netcdf = serializers.CharField(required=True)
+    inout_varName = serializers.CharField(required=True)
+    ref_varName = serializers.CharField(required=True)
+    in_epsgCode = serializers.IntegerField(required=True)
+    tSampling_interval = serializers.IntegerField(required=True)
+    start_Time = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    dTin = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    inout_timeName = serializers.CharField(required=True)
+    time_unitString = serializers.CharField(required=True)
+    in_Xcoord = serializers.CharField(required=True)
+    in_Ycoord = serializers.CharField(required=True)
+
+
+class SubsetNetCDFbyDateTimeRequestValidator(InputNetCDFURLorStaticRequestValidator):
+    output_netcdf = serializers.CharField(required=True)
+    startDateTime = serializers.CharField(required=True)
+    endDateTime = serializers.CharField(required=True)
+    dT = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
+    inout_timeName = serializers.CharField(required=True)
+
+
 class ConcatenateMultipleNetCDFRequestValidator(serializers.Serializer):
     output_netcdf = serializers.CharField(required=True)
     inout_timeName = serializers.CharField(required=True)
