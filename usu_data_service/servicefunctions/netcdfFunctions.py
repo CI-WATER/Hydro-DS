@@ -131,7 +131,7 @@ def subset_netCDF_by_datetime(input_netcdf, output_netcdf, startDateTime, endDat
 
 def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, reference_netcdf, output_netcdf, inout_varName, ref_varName,
         in_epsgCode=None, tSampling_interval=3, start_Time = 0.0, dTin = 1.0,
-        inout_TimeName = 'time', time_unitString ='hours since 2010-10-01 00:00:00 UTC', in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
+        inout_timeName = 'time', time_unitString ='hours since 2010-10-01 00:00:00 UTC', in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
 
     """This re-grids a netcdf to target/reference resolution
     dTin = input time step; target time step = tSampling_interval * dTin
@@ -155,14 +155,16 @@ def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, ref
     srs_data = None
 
     #Add dummy dimensions and variables
-    temp_netcdf = "temp_timespaceResample_"+inout_varName+".nc"
+    temp_netcdf = os.path.join(os.path.dirname(output_netcdf), 'temp_timespaceResample.nc')
     cmdString = "nccopy -4  "+reference_netcdf+" "+temp_netcdf             #output_netcdf
-    callSubprocess(cmdString, 'copy netcdf with dimensions')
+    subprocess_response_dict = call_subprocess(cmdString, 'copy netcdf with dimensions')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
 
     ncIn = netCDF4.Dataset(input_netcdf,"r") # format='NETCDF4')
     xin = ncIn.variables[in_Xcoord][:]
     yin = ncIn.variables[in_Ycoord][:]
-    timeLen = len(ncIn.dimensions[inout_TimeName])
+    timeLen = len(ncIn.dimensions[inout_timeName])
     dataType = ncIn.variables[in_Xcoord].datatype               # data type for time variable same as x variable
     vardataType = ncIn.variables[inout_varName].datatype
     tin = numpy.zeros(int(timeLen/tSampling_interval),dtype=dataType)
@@ -173,10 +175,10 @@ def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, ref
     xout = ncOut.variables['x'][:]
     yout = ncOut.variables['y'][:]
     ref_grid_mapping = getattr(ncOut.variables[ref_varName],'grid_mapping')
-    ncOut.createDimension(inout_TimeName,timeLen/tSampling_interval)
-    ncOut.createVariable(inout_TimeName,dataType,(inout_TimeName,))
-    ncOut.variables[inout_TimeName][:] = tin[:]
-    ncOut.createVariable(inout_varName,vardataType,(inout_TimeName,'y','x',))
+    ncOut.createDimension(inout_timeName,timeLen/tSampling_interval)
+    ncOut.createVariable(inout_timeName,dataType,(inout_timeName,))
+    ncOut.variables[inout_timeName][:] = tin[:]
+    ncOut.createVariable(inout_varName,vardataType,(inout_timeName,'y','x',))
 
     #Copy attributes
     varAtts = ncIn.variables[inout_varName].ncattrs()
@@ -198,11 +200,13 @@ def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, ref
     """
     attDict = {'calendar':'standard', 'long_name':'time'}
     attDict['units'] = time_unitString
-    ncOut.variables[inout_TimeName].setncatts(attDict)
+    ncOut.variables[inout_timeName].setncatts(attDict)
     ncOut.close()
     #delete old variables
     cmdString = "ncks -4 -C -O -x -v "+ref_varName+" "+temp_netcdf+" "+output_netcdf
-    callSubprocess(cmdString, 'delete old/reference variable')
+    subprocess_response_dict = call_subprocess(cmdString, 'delete old/reference variable')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
 
     #re-open file to write re-gridded data
     ncOut = netCDF4.Dataset(output_netcdf,"r+") #, format='NETCDF4')
@@ -219,8 +223,10 @@ def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, ref
         ncOut.variables[inout_varName][tk,:,:] = varout[::-1]         # reverse back the array for netCDF4
     ncIn.close()
     ncOut.close()
+
+    return subprocess_response_dict
     #delete temp netcdf file
-    os.remove(temp_netcdf)
+    #os.remove(temp_netcdf)
 
 
 def compute_average_of_two_netCDF_vars(input_netcdf1, input_netcdf2, output_netcdf, varName1, varName2,  varNameO,

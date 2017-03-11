@@ -45,7 +45,7 @@ funcs = {
                     'file_outputs': [{'output_netcdf': 'subsetprojSpaceTimeResample.nc'}],
                     'user_file_inputs': ['input_netcdf', 'reference_netcdf'],
                     'user_inputs': ['inout_varName', 'ref_varName', 'in_epsgCode', 'tSampling_interval',
-                                    'start_Time', 'dTin', 'inout_TimeName', 'time_unitString', 'in_Xcoord', 'in_Ycoord'],
+                                    'start_Time', 'dTin', 'inout_timeName', 'time_unitString', 'in_Xcoord', 'in_Ycoord'],
                     'validator': SubsetProjectTimeSpaceResampleNetCDFToReferenceNetCDF
                 },
 
