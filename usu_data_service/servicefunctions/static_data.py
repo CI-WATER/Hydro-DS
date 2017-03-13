@@ -8,15 +8,29 @@ DAYMET_ROOT_FILE_PATH = os.path.join(STATIC_DATA_ROOT_PATH, 'DaymetClimate')
 NLDAS_ROOT_FILE_PATH = os.path.join(STATIC_DATA_ROOT_PATH, 'NLDASClimate')
 
 
-startYear = 1988
+startYear = 2005
 endYear = 2015
 #
-NLDASyear= ['NLDAS_FORA0125_H.A_Monthly_'+str(year) for year in range(startYear, endYear+1)]
-NLDASlist = []
-for year in NLDASyear:
-    NLDASlist += [year+month+'.nc' for month in ['01','02','03','04', '05','06', '07', '08','09','10','11','12'] ]
-#
+# NLDAS Variable names and description
+#APCPsfc_110_SFC_acc1h : hourly total precipitation (Kg/m^2 = mm/hr)
+#TMP2m_110_HTGL : 2 m above ground temperature (K)
+#PRESsfc_110_SFC : Surface pressure (Pa)
+#UGRD10m_110_HTGL : 10 m above ground zonal wind speed (m/s)
+#VGRD10m_110_HTGL : 10 m above ground meridional wind speed (m/s)
+#SPFH2m_110_HTGL : 2 m above ground specific humidity (Kg/Kg)
+#DLWRFsfc_110_SFC : LW Radiation flux downwards at surface (W/m^2)
+#DSWRFsfc_110_SFC : SW Radiation flux downwards at surface (W/m^2)
+"""monthly data--not used currently
+#NLDASyear= ['NLDAS_FORA0125_H.A_Monthly_'+str(year) for year in range(startYear, endYear+1)]
+#for year in NLDASyear:
+#    NLDASlist += [year + month + '.nc' for month in ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']]
+"""
 
+NLDASVars = ['APCPsfc_110_SFC_acc1h', 'TMP2m_110_HTGL', 'PRESsfc_110_SFC', 'UGRD10m_110_HTGL', 'VGRD10m_110_HTGL', 'SPFH2m_110_HTGL','DLWRFsfc_110_SFC', 'DSWRFsfc_110_SFC']
+NLDASlist = []
+for nlvar in NLDASVars:
+    NLDASlist += ['NLDAS_FORA0125_H.A_' + nlvar + "_" + str(year) + ".nc" for year in range(startYear, endYear+1)]
+#daymet
 Daymetlist = []
 DaymetVars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
 ####iterate through climate variables

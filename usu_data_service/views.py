@@ -64,8 +64,8 @@ funcs = {
                    'function_to_execute': concatenate_multiple_netCDF,
                    'file_inputs': [],
                    'file_outputs': [{'output_netcdf': 'concatenatedMultiple.nc'}],
-                   'user_file_inputs': [],
-                   'user_list_inputs': 'input_netcdf_list_json', # ['input_netcdf1', 'input_netcdf2'],
+                   'user_file_inputs': ['input_netcdf_list'],
+                   #'user_list_inputs': 'input_netcdf_list_json', # ['input_netcdf1', 'input_netcdf2'],
                    'user_inputs': ['inout_timeName'],
                    'validator': ConcatenateMultipleNetCDFRequestValidator
                 },
@@ -78,16 +78,6 @@ funcs = {
                     'user_file_inputs': ['input_netcdf'],
                     'user_inputs': ['leftX', 'topY', 'rightX', 'bottomY', 'in_Xcoord', 'in_Ycoord'],
                     'validator': SubsetNetcdfByCoordinatesRequestValidator
-                },
-
-          'subsetnldasforcing':
-                {
-                    'function_to_execute': subset_nldas_forcing,
-                    'file_inputs': [],
-                    'file_outputs': [{'output_netcdf': 'subsetNLDAS.nc'}],
-                    'user_file_inputs': [],
-                    'user_inputs': ['leftX', 'topY', 'rightX', 'bottomY', 'startDateTime', 'endDateTime', 'dT', 'in_Xcoord', 'in_Ycoord', 'inout_timeName'],
-                    'validator': SubsetNldasForcingRequestValidator
                 },
 
           'subsetrastertobbox':
@@ -356,7 +346,7 @@ funcs = {
                    'function_to_execute': concatenate_netCDF,
                    'file_inputs': [],
                    'file_outputs': [{'output_netcdf': 'concatenated.nc'}],
-                   'user_inputs': [],
+                   'user_inputs': ['inout_timeName'],
                    'user_file_inputs': ['input_netcdf1', 'input_netcdf2'],
                    'validator': ConcatenateNetCDFRequestValidator
                 },
@@ -442,14 +432,10 @@ funcs = {
 class RunService(APIView):
     """
     Executes the specified service/function
-
     URL: /api/dataservice/{func}
     HTTP method: GET
-
     :param func: name of the function to execute
-
     The function specific parameter values needs to be passed as part of the query string
-
     :raises
     ValidationError: json response format: {'parameter_1': [parameter_1_error], 'parameter_2': [parameter_2_error], ..}
     """
@@ -499,41 +485,54 @@ class RunService(APIView):
         # comes as a file name for static data file on the server, get the static data file path from the file name
         # and pass that file path to the executing function
         for p in params['user_file_inputs']:
-            input_file = request_validator.validated_data[p]
-            if is_input_file_url_path(input_file):
-                uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path,
-                                                                                 request_validator.validated_data[p])
-                if uuid_input_file_path.endswith('.zip'):
-                    unzip_shape_file(uuid_input_file_path)
-                    uuid_input_file_path = uuid_input_file_path.replace('zip', 'shp')
-
-                subprocparams[p] = uuid_input_file_path
-                logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
-            else:
-                static_data_file_path = get_static_data_file_path(input_file)
-                subprocparams[p] = static_data_file_path
-                logger.debug('input_static_file_path:' + static_data_file_path)
-
-        #list from json string
-        if func == 'concatenatemultiplenetcdf':
-            pdict = params['user_list_inputs']
-            #print(pdict)
-            input_fileList = request_validator.validated_data[pdict]
-            #print(input_fileList)
-            user_input_json_list = json.loads(input_fileList)
+            input_files = request_validator.validated_data[p]
             input_file_path_list = []
-            for input_file in user_input_json_list:
-                #input_file = request_validator.validated_data[p]
-                #input_file = user_input_json_list[p]
+            if not isinstance(input_files, list):
+                input_files = [input_files]
+            for input_file in input_files:
                 if is_input_file_url_path(input_file):
-                    uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path, input_file)
-                                                                                     #request_validator.validated_data[p])
-                    #subprocparams[p] = uuid_input_file_path
-                    input_file_path_list.append(uuid_input_file_path)
+                    uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path,
+                                                                                     request_validator.validated_data[p])
+                    if uuid_input_file_path.endswith('.zip'):
+                        unzip_shape_file(uuid_input_file_path)
+                        uuid_input_file_path = uuid_input_file_path.replace('zip', 'shp')
+
+                    if len(input_files) == 1:
+                        subprocparams[p] = uuid_input_file_path
+                    else:
+                        input_file_path_list.append(uuid_file_path)
                     logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
                 else:
-                    logger.debug('error file does not exisit in user space: ' + input_file)
-            subprocparams[pdict] = json.dumps(input_file_path_list)
+                    static_data_file_path = get_static_data_file_path(input_file)
+                    if len(input_files) == 1:
+                        subprocparams[p] = static_data_file_path
+                    else:
+                        input_file_path_list.append(static_data_file_path)
+                    logger.debug('input_static_file_path:' + static_data_file_path)
+
+            if len(input_files) > 1:
+                subprocparams[p] = input_file_path_list
+
+        #list from json string
+        # if func == 'concatenatemultiplenetcdf':
+        #     pdict = params['user_list_inputs']
+        #     #print(pdict)
+        #     input_fileList = request_validator.validated_data[pdict]
+        #     #print(input_fileList)
+        #     user_input_json_list = json.loads(input_fileList)
+        #     input_file_path_list = []
+        #     for input_file in user_input_json_list:
+        #         #input_file = request_validator.validated_data[p]
+        #         #input_file = user_input_json_list[p]
+        #         if is_input_file_url_path(input_file):
+        #             uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path, input_file)
+        #                                                                              #request_validator.validated_data[p])
+        #             #subprocparams[p] = uuid_input_file_path
+        #             input_file_path_list.append(uuid_input_file_path)
+        #             logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
+        #         else:
+        #             logger.debug('error file does not exisit in user space: ' + input_file)
+        #     subprocparams[pdict] = json.dumps(input_file_path_list)
 
         # execute the function
         result = params['function_to_execute'](**subprocparams)

@@ -77,7 +77,7 @@ class InputNetCDFURLorStaticRequestValidator(serializers.Serializer):
 class ComputeAverageOfTwoNetCDFVarsRequestValidator(serializers.Serializer):
     input_netcdf1 = serializers.URLField(required=True)
     input_netcdf2 = serializers.URLField(required=True)
-    output_netcd = serializers.CharField(required=False)
+    output_netcdf = serializers.CharField(required=False)
     varName1 = serializers.CharField(required=False)
     varName2 = serializers.CharField(required=False)
     varNameO = serializers.CharField(required=False)
@@ -122,20 +122,6 @@ class SubsetNetcdfByCoordinatesRequestValidator(InputNetCDFURLorStaticRequestVal
     bottomY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
     in_Xcoord = serializers.CharField(required=True)
     in_Ycoord = serializers.CharField(required=True)
-
-
-class SubsetNldasForcingRequestValidator(serializers.Serializer):
-    output_netcdf = serializers.CharField(required=True)
-    leftX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    topY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    rightX = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    bottomY = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    startDateTime = serializers.CharField(required=True)
-    endDateTime = serializers.CharField(required=True)
-    dT = serializers.DecimalField(required=True, max_digits=12, decimal_places=8)
-    in_Xcoord = serializers.CharField(required=True)
-    in_Ycoord = serializers.CharField(required=True)
-    inout_timeName = serializers.CharField(required=True)
 
 
 class DelineateWatershedAtXYRequestValidator(serializers.Serializer):
@@ -299,6 +285,7 @@ class ConcatenateNetCDFRequestValidator(serializers.Serializer):
     input_netcdf1 = serializers.URLField(required=True)
     input_netcdf2 = serializers.URLField(required=True)
     output_netcdf = serializers.CharField(required=False)
+    inout_timeName = serializers.CharField(required=True)
 
 
 class ProjectSubsetResampleNetCDFRequestValidator(ResampleNetCDFRequestValidator):
