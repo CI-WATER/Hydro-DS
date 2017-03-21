@@ -4,11 +4,14 @@ import zipfile
 import shutil
 import subprocess
 from datetime import datetime
+import functools
 
 
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareAuthBasic
 from usu_data_service.utils import generate_uuid_file_path, delete_working_uuid_directory
 from usu_data_service.servicefunctions.model_parameter_list import *
+from usu_data_service.models import Job
+from usu_data_service.servicefunctions.run_job import run_service, run_service_done
 
 
 from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset, project_shapefile_EPSG, \
@@ -19,6 +22,30 @@ from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_vari
     concatenate_netCDF, get_netCDF_subset_TimeDim, project_subset_and_resample_netcdf_to_reference_netcdf, convert_netcdf_units
 from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
 from usu_data_service.servicefunctions.gdal_calc import Calc
+
+
+def run_create_ueb_input_job(request, **kwargs):
+
+    job = None
+
+    try:
+        job = Job.objects.create(user=request.user, job_description="create ueb model input", status="Started")
+        future = run_service(create_ueb_input, **kwargs)
+        partial_run_service_done = functools.partial(run_service_done, job=job)
+        future.add_done_callback(partial_run_service_done)
+
+        return {'success': 'True',
+                'message': 'The job has been submitted with job ID as {}'.format(job.id)}
+
+    except Exception as e:
+        if isinstance(job, Job):
+            job.delet()
+
+        return {'success': 'False',
+                'error': ['The job submission is failed. Please try to submit the job again.']}
+
+
+
 
 
 def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_client_secret=None, token=None,

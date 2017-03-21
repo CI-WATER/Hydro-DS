@@ -419,7 +419,7 @@ class RunService(APIView):
         if not request_validator.is_valid():
             raise DRF_ValidationError(detail=request_validator.errors)
 
-        subprocparams = {}
+        subprocparams = {'request': request}
         for param_dict_item in params['file_inputs']:
             for param_name in param_dict_item:
                 subprocparams[param_name] = param_dict_item[param_name]
@@ -479,6 +479,20 @@ class RunService(APIView):
         delete_working_uuid_directory(uuid_file_path)
 
         return Response(data=response_data)
+
+
+@api_view(['GET'])
+def check_job_status(request):
+    job_id = request.GET['job_id']
+    job = Job.objects.filter(id=job_id).first()
+    if job is not None:
+        response_data = {'success': True,
+                         'data': [job.id, job.status,job.start_time, job.end_time,
+                                  job.job_description, job.is_success, job.message],
+                         'error': []}
+    else:
+        response_data = {'success': False, 'data': '', 'error': ['No job was found']}
+    return Response(data=response_data)
 
 
 @api_view(['GET'])

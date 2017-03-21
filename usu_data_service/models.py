@@ -21,3 +21,13 @@ def get_upload_path(instance, filename):
 class UserFile(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
     file = models.FileField(upload_to=get_upload_path)
+
+
+class Job(models.Model):
+    user = models.ForeignKey(User, blank=True, null=True)
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(blank=True)
+    status = models.CharField(max_length=255, blank=True, null=True)
+    job_description = models.CharField(max_length=255)
+    message = models.CharField(max_length=1000, blank=True, null=True)
+    is_success = models.BooleanField(blank=True)

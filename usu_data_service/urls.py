@@ -15,6 +15,7 @@ urlpatterns = patterns('',
   url(r'^api/dataservice/hydrogate/resultfile', views.get_hydrogate_result_file),
   url(r'^api/dataservice/capabilities/list', views.show_capabilities),
   url(r'^api/dataservice/info/(?P<func>[A-z0-9]+)$', views.show_service_info),
+  url(r'^api/dataservice/job/check_job_status', views.check_job_status),
 )
  
 urlpatterns = format_suffix_patterns(urlpatterns)
