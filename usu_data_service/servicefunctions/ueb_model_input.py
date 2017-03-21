@@ -6,6 +6,9 @@ import subprocess
 from datetime import datetime
 import functools
 
+from django.contrib.auth.models import User
+from time import sleep
+
 
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareAuthBasic
 from usu_data_service.utils import generate_uuid_file_path, delete_working_uuid_directory
@@ -29,23 +32,25 @@ def run_create_ueb_input_job(request, **kwargs):
     job = None
 
     try:
-        job = Job.objects.create(user=request.user, job_description="create ueb model input", status="Started")
+        job = Job.objects.create(user=request.user,
+                                 job_description="create ueb model input",
+                                 status="Started",
+                                 is_success=False)
+
         future = run_service(create_ueb_input, **kwargs)
         partial_run_service_done = functools.partial(run_service_done, job=job)
         future.add_done_callback(partial_run_service_done)
 
         return {'success': 'True',
-                'message': 'The job has been submitted with job ID as {}'.format(job.id)}
+                'message': 'The job has been submitted with job ID as {}'.format(job.id)
+                }
 
     except Exception as e:
         if isinstance(job, Job):
-            job.delet()
+            job.delete()
 
         return {'success': 'False',
                 'error': ['The job submission is failed. Please try to submit the job again.']}
-
-
-
 
 
 def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_client_secret=None, token=None,
@@ -274,7 +279,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
             delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
-                'message': 'Failed to prepare the climate variables data'+uuid_file_path+''+str(start_time_index)+str(end_time_index)}
+                'message': 'Failed to prepare the climate variables data'}
 
     # prepare the parameter files
     try:

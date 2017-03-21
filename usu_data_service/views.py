@@ -370,7 +370,7 @@ funcs = {
                 },
         'createuebinput':
                 {
-                   'function_to_execute': create_ueb_input,
+                   'function_to_execute': run_create_ueb_input_job,
                    'file_inputs': [],
                    'file_outputs': [],
                    'user_inputs': ['hs_username', 'hs_password', 'hs_client_id', 'hs_client_secret',
@@ -474,7 +474,7 @@ class RunService(APIView):
                 data = _save_output_files_in_django(output_files, user=user)
                 response_data = {'success': True, 'data': data, 'error': []}
         else:
-            response_data = {'success': False, 'data': data, 'error': result['message']}
+            response_data = {'success': False, 'data': data, 'error': [result['error']]}
 
         delete_working_uuid_directory(uuid_file_path)
 
@@ -487,7 +487,7 @@ def check_job_status(request):
     job = Job.objects.filter(id=job_id).first()
     if job is not None:
         response_data = {'success': True,
-                         'data': [job.id, job.status,job.start_time, job.end_time,
+                         'data': [job.id, job.status, job.start_time, job.end_time,
                                   job.job_description, job.is_success, job.message],
                          'error': []}
     else:
