@@ -481,17 +481,54 @@ class RunService(APIView):
         return Response(data=response_data)
 
 
+# @api_view(['GET'])
+# def check_job_status(request):
+#     job_id = request.GET['job_id']
+#     job = Job.objects.filter(id=job_id).first()
+#     if job is not None:
+#         response_data = {'success': True,
+#                          'data': [job.id, job.status, job.start_time, job.end_time,
+#                                   job.job_description, job.is_success, job.message, job.extra_data],
+#                          'error': []}
+#     else:
+#         response_data = {'success': False, 'data': '', 'error': ['No job was found']}
+#     return Response(data=response_data)
+
+
 @api_view(['GET'])
 def check_job_status(request):
-    job_id = request.GET['job_id']
-    job = Job.objects.filter(id=job_id).first()
-    if job is not None:
+    filter_dict = {}
+
+    for filter in ['id', 'status', 'extra_data']:
+        if request.GET.get(filter):
+            filter_dict[filter] = request.GET.get(filter)
+
+    job_list = Job.objects.filter(**filter_dict)
+
+    if job_list:
+        data = []
+
+        for job in job_list:
+            job_info = {
+                'id': job.id,
+                'user': job.user.username,
+                'status': job.status,
+                'start_time': job.start_time,
+                'end_time': job.end_time,
+                'job_description': job.job_description,
+                'message': job.message,
+                'is_success': job.is_success,
+                'extra_data': job.extra_data,
+            }
+
+            data.append(job_info)
+
         response_data = {'success': True,
-                         'data': [job.id, job.status, job.start_time, job.end_time,
-                                  job.job_description, job.is_success, job.message, job.extra_data],
+                         'data': data,
                          'error': []}
     else:
         response_data = {'success': False, 'data': '', 'error': ['No job was found']}
+
     return Response(data=response_data)
 
 
