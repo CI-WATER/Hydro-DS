@@ -35,7 +35,8 @@ def run_create_ueb_input_job(request, **kwargs):
         job = Job.objects.create(user=request.user,
                                  job_description="create ueb model input",
                                  status="Started",
-                                 is_success=False)
+                                 is_success=False,
+                                 extra_data='HydroShare: ' + kwargs.get('hs_username') if kwargs.get('hs_username') else None)
 
         future = run_service(create_ueb_input, **kwargs)
         partial_run_service_done = functools.partial(run_service_done, job=job)

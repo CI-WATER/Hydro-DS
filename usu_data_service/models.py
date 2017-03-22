@@ -31,3 +31,4 @@ class Job(models.Model):
     job_description = models.CharField(max_length=255)
     message = models.CharField(max_length=1000, blank=True, null=True)
     is_success = models.BooleanField(blank=True)
+    extra_data = models.CharField(max_length=1000, blank=True, null=True)

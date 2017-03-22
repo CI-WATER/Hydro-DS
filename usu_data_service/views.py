@@ -488,7 +488,7 @@ def check_job_status(request):
     if job is not None:
         response_data = {'success': True,
                          'data': [job.id, job.status, job.start_time, job.end_time,
-                                  job.job_description, job.is_success, job.message],
+                                  job.job_description, job.is_success, job.message, job.extra_data],
                          'error': []}
     else:
         response_data = {'success': False, 'data': '', 'error': ['No job was found']}
