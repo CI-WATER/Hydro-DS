@@ -43,7 +43,7 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
     input_bag_path = os.path.join(uuid_file_path, resource_id + '.zip')
 
     try:
-        hs = HydroShare(auth=auth)
+        hs = HydroShare(auth=auth, hostname='www.hydroshare.org')
         resource = hs.getResource(resource_id)
         with open(input_bag_path, 'wb') as fd:
             for chunk in resource:
