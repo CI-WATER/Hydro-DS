@@ -369,7 +369,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
 
         variable_dict = { 'EPSG code for data': epsgCode,
                           'Stream Threshold': streamThreshold,
-                          'Outlet Lattitude': lat_outlet,
+                          'Outlet Latitude': lat_outlet,
                           'Outlet Longitude': lon_outlet,
                           'Modeling Resolution dx (m)': dxRes,
                           'Modeling Resolution dy (m)': dyRes
