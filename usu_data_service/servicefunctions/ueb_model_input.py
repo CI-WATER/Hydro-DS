@@ -24,7 +24,8 @@ from usu_data_service.servicefunctions.watershedFunctions import project_and_res
 from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable, subset_netCDF_to_reference_raster, \
     concatenate_netCDF, get_netCDF_subset_TimeDim, project_subset_and_resample_netcdf_to_reference_netcdf, convert_netcdf_units
 from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
-from usu_data_service.servicefunctions.gdal_calc import Calc
+from usu_data_service.servicefunctions.gdal_calc import Calc   # remember to add this file
+from usu_data_service.servicefunctions.epsg_list import EPSG_List  # remember to add this file
 
 
 def run_create_ueb_input_job(request, **kwargs):
@@ -366,8 +367,9 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
 
         # metadata.append({'contributor': {'name': 'John Smith', 'email': 'jsmith@gmail.com'}})
         # metadata.append({'relation': {'type': 'cites', 'value': 'http'}})
+        epsgCode_name = [item[0] for item in EPSG_List if item[1] == epsgCode].pop()
 
-        variable_dict = { 'EPSG code for data': epsgCode,
+        variable_dict = { 'EPSG code for data': epsgCode_name,
                           'Stream Threshold': streamThreshold,
                           'Outlet Latitude': lat_outlet,
                           'Outlet Longitude': lon_outlet,
