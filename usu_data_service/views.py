@@ -509,13 +509,13 @@ def check_job_status(request):
         data = []
 
         for job in job_list:
-                       
+
             job_info = {
                 'id': job.id,
                 'user': job.user.username,
                 'status': job.status,
                 'start_time': job.start_time.strftime('%Y-%m-%d %H:%M:%S %z'),
-                'end_time': job.end_time.strftime('%Y-%m-%d %H:%M:%S %z'),
+                'end_time': job.end_time.strftime('%Y-%m-%d %H:%M:%S %z') if job.end_time is not None else job.end_time,
                 'job_description': job.job_description,
                 'message': job.message,
                 'is_success': job.is_success,
