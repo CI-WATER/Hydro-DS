@@ -36,6 +36,7 @@ def run_create_ueb_input_job(request, **kwargs):
                                  job_description="create ueb model input",
                                  status="Started",
                                  is_success=False,
+                                 message='Job has been submitted for processing and not completed yet.',
                                  extra_data='HydroShare: ' + kwargs.get('hs_username') if kwargs.get('hs_username') else None)
 
         future = run_service(create_ueb_input, **kwargs)
@@ -370,8 +371,8 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                           'Stream Threshold': streamThreshold,
                           'Outlet Lattitude': lat_outlet,
                           'Outlet Longitude': lon_outlet,
-                          'Modeling Resolution dx': dxRes,
-                          'Modeling Resolution dy': dyRes
+                          'Modeling Resolution dx (m)': dxRes,
+                          'Modeling Resolution dy (m)': dyRes
                         }
 
         extra_metadata = {}
