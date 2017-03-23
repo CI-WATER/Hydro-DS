@@ -392,7 +392,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
             return {'success': "False",
                     'message': "Authentication to HydroShare is failed. Please provide HydroShare User information"}
 
-        hs = HydroShare(auth=auth)
+        hs = HydroShare(auth=auth, hostname='www.hydroshare.org')
 
         res_info = hs.createResource('ModelInstanceResource',
                                      title=res_title if res_title else 'UEB model input package',
