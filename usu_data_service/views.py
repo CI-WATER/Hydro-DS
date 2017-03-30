@@ -21,7 +21,7 @@ from usu_data_service.utils import *
 from usu_data_service.local_settings import *
 from usu_data_service.capabilities import *
 
-from usu_data_service.servicefunctions.ueb_model_run import run_ueb_model
+from usu_data_service.servicefunctions.ueb_model_run import run_ueb_simulation_job
 
 WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.tif')
 
@@ -379,7 +379,7 @@ funcs = {
           # run ueb model with HydroShare resource
           'runuebmodel':
                 {
-                   'function_to_execute': run_ueb_model,
+                   'function_to_execute': run_ueb_simulation_job,
                    'file_inputs': [],
                    'file_outputs': [],
                    'user_inputs': ['resource_id', 'hs_username', 'hs_password', 'hs_client_id','hs_client_secret',
@@ -477,13 +477,13 @@ class RunService(APIView):
         if result['success'] == 'True':
             user = request.user if request.user.is_authenticated() else None
 
-            if func in ['createuebinput','runuebmodel']:
+            if func in ['createuebinput', 'runuebmodel']:
                 response_data = {'success': True, 'data': {'info': result['message']}, 'error': []}
             else:
                 data = _save_output_files_in_django(output_files, user=user)
                 response_data = {'success': True, 'data': data, 'error': []}
         else:
-            response_data = {'success': False, 'data': data, 'error': [result['error']]}
+            response_data = {'success': False, 'data': data, 'error': result['message']}
 
         delete_working_uuid_directory(uuid_file_path)
 

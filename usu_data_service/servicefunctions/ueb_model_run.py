@@ -7,14 +7,43 @@ import zipfile
 import shutil
 import subprocess
 import datetime
+import functools
 
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareAuthBasic
+from usu_data_service.models import Job
+from usu_data_service.servicefunctions.run_job import run_service, run_service_done
 from usu_data_service.utils import generate_uuid_file_path, delete_working_uuid_directory
 from usu_data_service.servicefunctions.model_parameter_list import site_initial_variable_codes, input_vairable_codes
 
 
+def run_ueb_simulation_job(request, **kwargs):
+    job = None
+    try:
+        job = Job.objects.create(user=request.user,
+                                 job_description="run ueb model",
+                                 status="Started",
+                                 is_success=False,
+                                 message='Job has been submitted for processing and not completed yet.',
+                                 extra_data='HydroShare: ' + kwargs.get('hs_username') if kwargs.get('hs_username') else None)
+
+        future = run_service(run_ueb_model, **kwargs)
+        partial_run_service_done = functools.partial(run_service_done, job=job)
+        future.add_done_callback(partial_run_service_done)
+
+        return {'success': 'True',
+                'message': 'The job has been submitted with job ID as {}'.format(job.id)
+                }
+
+    except Exception as e:
+        if isinstance(job, Job):
+            job.delete()
+
+        return {'success': 'False',
+                'message': ['The job submission is failed. Please try to submit the job again.']}
+
+
 def run_ueb_model(resource_id, hs_username=None, hs_password=None,
-                  hs_client_id=None, hs_client_secret=None, token=None):
+                  hs_client_id=None, hs_client_secret=None, token=None, **kwargs):
     """
     This function will download the resource from HydroShare, run model in HydroDS and then save the results in HydroShare.
 
@@ -41,18 +70,19 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
     # download resource to tmp dir in HydroDS
     uuid_file_path = generate_uuid_file_path()
     input_bag_path = os.path.join(uuid_file_path, resource_id + '.zip')
-
     try:
         hs = HydroShare(auth=auth, hostname='www.hydroshare.org')
-        resource = hs.getResource(resource_id)
+        obj = hs.getResource(resource_id)
+        # import types
+        # resource = str(isinstance(obj, types.GeneratorType))
         with open(input_bag_path, 'wb') as fd:
-            for chunk in resource:
+            for chunk in obj:
                 fd.write(chunk)
-            zf = zipfile.ZipFile(input_bag_path)
-            zf.extractall(uuid_file_path)
-            zf.close()
-            os.remove(input_bag_path)
-    except Exception:
+
+        subprocess.Popen(['unzip', input_bag_path], stdout=subprocess.PIPE, cwd=uuid_file_path).wait()
+        os.remove(input_bag_path)
+
+    except Exception as e:
         delete_working_uuid_directory(uuid_file_path)
         return {'success': "False", 'message': 'Failed to download the HydroShare resource.'}
 
@@ -72,14 +102,15 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
             delete_working_uuid_directory(uuid_file_path)
             return {'success': 'False', 'message': validation['result'] }
         else:
-            # copy ueb executable
-            ueb_bash_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/runueb.sh'
-            ueb_exe_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/ueb'  #TODO find out the ueb file path
-            shutil.copy(ueb_exe_path, model_input_folder)
-            shutil.copy(ueb_bash_path, model_input_folder)
-
             # run ueb model
             try:
+
+                # copy ueb executable
+                ueb_bash_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/runueb.sh'
+                ueb_exe_path = r'/home/ahmet/hydosbin/ueb/UEBGrid_Parallel_Linuxp/ueb'  # TODO find out the ueb file path
+                shutil.copy(ueb_exe_path, model_input_folder)
+                shutil.copy(ueb_bash_path, model_input_folder)
+
                 process = subprocess.Popen(['./runueb.sh'], stdout=subprocess.PIPE,
                                        cwd=model_input_folder).wait()
 
