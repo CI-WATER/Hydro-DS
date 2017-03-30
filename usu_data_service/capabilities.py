@@ -111,8 +111,13 @@ def get_capabilites():
     capabilities.append(_get_capability_dict(service_name='zipfiles',
                                              description="zip a set of user files on HydroDS"))
 
+
     capabilities.append(_get_capability_dict(service_name='createuebinput',
                                              description='create model input package for ueb model'))
+
+    capabilities.append(_get_capability_dict(service_name='runuebmodel',
+                                             description="Run ueb model using HydroShare resource"))
+
     return capabilities
 
 
@@ -163,6 +168,8 @@ def get_service_info(service_name):
     services_info_dict['deletefile'] = _get_deletefile_info
     services_info_dict['zipfiles'] = _get_zipfiles_info
     services_info_dict['createuebinput'] = _get_createuebinput_info
+    services_info_dict['runuebmodel'] = _get_runuebmodel_info
+
 
     if service_name in services_info_dict:
         return services_info_dict[service_name]()
@@ -1192,10 +1199,49 @@ def _get_zipfiles_info():
           }
 
 
+
 def _get_createuebinput_info():
+    # TODO: add more parameter info
     service_name = 'createuebinput'
     return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
                             'parameters': [
+                                _get_param_dict(name='hs_username',
+                                                description='user name of HydroShare account',
+                                                required=False,
+                                                type='string'),
+
+                                _get_param_dict(name='hs_password',
+                                                description='password of HydroShare account',
+                                                required=False,
+                                                type='string'),
+
+                                _get_param_dict(name='hs_client_id',
+                                                description='client id of the HydroShare app',
+                                                required=False,
+                                                type='string'),
+
+                                _get_param_dict(name='hs_clien_secret',
+                                                description='client secret of the HydroShare app',
+                                                required=False,
+                                                type='string'),
+
+                                _get_param_dict(name='token',
+                                                description='HydroShare token dictionary as string',
+                                                required=False,
+                                                type='string'),
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_runuebmodel_info():
+    service_name = 'runuebmodel'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                _get_param_dict(name='resource_id',
+                                                description='HydroShare resource identifier',
+                                                required=True,
+                                                type='string'),
 
                                 _get_param_dict(name='hs_username',
                                                 description='user name of HydroShare account',

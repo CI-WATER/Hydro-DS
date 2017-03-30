@@ -21,6 +21,8 @@ from usu_data_service.utils import *
 from usu_data_service.local_settings import *
 from usu_data_service.capabilities import *
 
+from usu_data_service.servicefunctions.ueb_model_run import run_ueb_model
+
 WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.tif')
 
 logger = logging.getLogger(__name__)
@@ -359,15 +361,7 @@ funcs = {
                    'validator': DownloadStreamflowRequestValidator
                 },
 
-        'downloadstreamflow':
-                {
-                   'function_to_execute': CommonLib.download_streamflow,
-                   'file_inputs': [],
-                   'file_outputs': [{'output_streamflow': 'streamflow_calibration.dat'}],
-                   'user_inputs': ['USGS_gage', 'Start_Year', 'End_Year'],
-                   'user_file_inputs': [],
-                   'validator': DownloadStreamflowRequestValidator
-                },
+        # prepare ueb model input
         'createuebinput':
                 {
                    'function_to_execute': run_create_ueb_input_job,
@@ -380,9 +374,23 @@ funcs = {
                                    'watershedName'],
                    'user_file_inputs': [],
                    'validator': CreateUebInputValidator
+                },
+
+          # run ueb model with HydroShare resource
+          'runuebmodel':
+                {
+                   'function_to_execute': run_ueb_model,
+                   'file_inputs': [],
+                   'file_outputs': [],
+                   'user_inputs': ['resource_id', 'hs_username', 'hs_password', 'hs_client_id','hs_client_secret',
+                                   'token'],
+                   'user_file_inputs': [],
+                   'validator': RunUebModelValidator
                 }
 
-         }
+        }
+
+
 
 
 class RunService(APIView):
@@ -464,11 +472,12 @@ class RunService(APIView):
         result = params['function_to_execute'](**subprocparams)
         logger.debug('result from function ({function_name}):{result}'.format(function_name=func, result=result))
 
-        # process function output results
+        # process function output results  # TODO remove this
         data = []
         if result['success'] == 'True':
             user = request.user if request.user.is_authenticated() else None
-            if func == 'createuebinput':
+
+            if func in ['createuebinput','runuebmodel']:
                 response_data = {'success': True, 'data': {'info': result['message']}, 'error': []}
             else:
                 data = _save_output_files_in_django(output_files, user=user)
@@ -754,6 +763,3 @@ def _save_output_files_in_django(output_files, user=None):
         logger.debug('django file url for the output file:' + user_file.file.url)
 
     return output_files_in_django
-
-
-

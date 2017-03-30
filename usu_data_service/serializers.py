@@ -379,3 +379,12 @@ class CreateUebInputValidator(serializers.Serializer):
     res_keywords = serializers.CharField(required=False)
     res_title = serializers.CharField(required=False)
     watershedName = serializers.CharField(required=False)
+
+
+class RunUebModelValidator(serializers.Serializer):
+    resource_id = serializers.CharField(min_length=32, required=True)
+    hs_client_id = serializers.CharField(required=False)
+    hs_client_secret = serializers.CharField(required=False)
+    token = serializers.CharField(required=False)
+    hs_username = serializers.CharField(required=False)
+    hs_password = serializers.CharField(required=False)
