@@ -208,8 +208,9 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         # we are using data from Daymet; so data are daily
         start_date_value = datetime.strptime(startDateTime, "%Y/%m/%d")
         end_date_value = datetime.strptime(endDateTime, "%Y/%m/%d")
-        start_time_index = start_date_value.day-1
-        end_time_index = start_date_value.day + (end_date_value - start_date_value).days -1
+        start_time_index = start_date_value.timetuple().tm_yday
+        start_time_index = start_time_index-1
+        end_time_index = start_time_index + (end_date_value - start_date_value).days
 
         climate_Vars = ['vp', 'tmin', 'tmax', 'srad', 'prcp']
         #iterate through climate variables
