@@ -19,8 +19,9 @@ from usu_data_service.servicefunctions.model_parameter_list import site_initial_
 def run_ueb_simulation_job(request, **kwargs):
     job = None
     try:
+
         job = Job.objects.create(user=request.user,
-                                 job_description="run ueb model",
+                                 job_description="run ueb model for resource " + kwargs.get('resource_id'),
                                  status="Started",
                                  is_success=False,
                                  message='Job has been submitted for processing and not completed yet.',
@@ -156,7 +157,7 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
 
             except Exception as e:
                 delete_working_uuid_directory(uuid_file_path)
-                return {'success': "False", 'message': 'failed to execute ueb model'}
+                return {'success': "False", 'message': 'Failed to execute ueb model'}
 
             # Share the output in HydroShare
             os.chdir(model_input_folder)
@@ -187,7 +188,7 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
             delete_working_uuid_directory(uuid_file_path)
 
     return {'success': 'True',
-            'message': 'Please check the model outputs in the HydroShare resource http://www.hydroshare.org/resource/{}'.format(resource_id)}
+            'message': 'Please check the model outputs in the HydroShare http://www.hydroshare.org/resource/{}'.format(resource_id)}
 
 
 def validate_model_input_files(model_input_folder):

@@ -15,10 +15,10 @@ def run_service_done(future, job):
     job.status = 'Done'
     if future.exception():
         job.is_success = False
-        job.message = 'The job {} is failed: {}'.format(job.job_description, future.exception())
+        job.message = 'The job is failed: {}'
     elif future.cancelled():
         job.is_success = False
-        job.message = 'The job {} is cancelled.'.format(job.job_description)
+        job.message = 'The job is cancelled.'
     elif future.result():
         result = future.result()
         if result['success'] == 'True':
@@ -26,6 +26,6 @@ def run_service_done(future, job):
             job.message = result['message']
         else:
             job.is_success = False
-            job.message = 'The job {} is failed: {}'.format(job.job_description, result['message'])
+            job.message = 'The job is failed: {}'.format(result['message'])
 
     job.save()
