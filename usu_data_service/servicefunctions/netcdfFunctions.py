@@ -8,12 +8,13 @@ import subprocess
 import os
 import numpy
 import netCDF4
+from datetime import datetime
 from scipy import interpolate
 from .utils import *
+import json
 
 
-def convert_netcdf_units(input_netcdf, output_netcdf, variable_name, variable_new_units=" ", multiplier_factor=1,
-                         offset=0):
+def convert_netcdf_units(input_netcdf, output_netcdf, variable_name, variable_new_units=" ", multiplier_factor=1, offset=0):
     """
     does unit conversion for a variable in netcdf file
     :param input_netcdf: input
@@ -65,6 +66,230 @@ def project_and_resample_Array(input_array, srs_geotrs, srs_proj, Nxin, Nyin, re
     srs_data = None
     out_data = None
     return output_array
+
+
+def subset_netcdf_by_coordinates(input_netcdf, output_netcdf, leftX, topY, rightX, bottomY, in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
+
+    cmdString = "ncea -d "+in_Xcoord+","+str(leftX)+","+str(rightX)\
+                    +" -d "+in_Ycoord+","+str(bottomY)+","+str(topY)+" -O "+input_netcdf+" "+output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'subset nc files spatially')
+    return subprocess_response_dict
+
+
+def concatenate_multiple_netCDF(output_netcdf, inout_timeName = 'time', input_netcdf_list_json=None):
+    """
+    """
+    input_string = ""
+    input_netcdf_list = json.loads(input_netcdf_list_json)
+    ij=0
+    for fileI in input_netcdf_list:
+        #file_full_path = input_netcdf_list[key]
+        #path_parts = file_full_path.split('/')
+        #fileI = input_netcdf_list[key] #path_parts[-1]
+        ij = ij+1
+        intermediate_file = "R_Intermediate_netcdf_file"+str(ij)+".nc"
+        input_string = input_string + " " +intermediate_file
+        cmdString = "ncks --mk_rec_dmn " + inout_timeName + " -O " + fileI + " " + intermediate_file
+        subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
+        if subprocess_response_dict['success'] == 'False':
+            return subprocess_response_dict
+
+    cmdString = "ncrcat -4 -H -h -O  "+input_string+" -o "+output_netcdf                     #-H don't append input file list -h don't append history
+    subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
+
+    # delete intermediate files
+    #os.remove(input_string)
+
+    return subprocess_response_dict
+
+
+def subset_netCDF_by_datetime(input_netcdf, output_netcdf, startDateTime, endDateTime, dT=1, inout_timeName='time'):
+    """
+    Subsets and combines multiple netcdf files
+    for nldas forcing, with multiple time steps (e.g., organized in monthly files)
+    should already have time dim. for ncrcat, made record dim by ncks
+    e.g.:
+    Logan leftX=-112.0, topY=42.3, rightX=-111.0, bottomY=41.6, startYear=2009, endYear=2010
+    for nldas data with time dim (e.g., previously concatenated in time dim)
+    """
+    startDay = datetime.strptime(startDateTime, "%Y/%m/%d %H").timetuple().tm_yday  # start date = day of year for 2010
+    endDay = startDay + (datetime.strptime(endDateTime, "%Y/%m/%d %H") - datetime.strptime(startDateTime, "%Y/%m/%d %H")).days  # end date = day of year for 2011 + 365
+    # print(startDay)
+    # print(endDay)
+
+    hD = int(24/dT)
+    starttimeIndex = startDay * hD
+    endtimeIndex = endDay * hD
+    #print(starttimeIndex)
+    #print(endtimeIndex)
+    cmdString = "ncea -4 -H -O -d "+inout_timeName+","+str(starttimeIndex)+","+str(endtimeIndex)+" "\
+                 +input_netcdf+" "+output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'subset netcdf in time')
+
+    return subprocess_response_dict
+
+
+def subset_project_timespaceResample_netCDF_to_referenceNetCDF(input_netcdf, reference_netcdf, output_netcdf, inout_varName, ref_varName,
+        in_epsgCode=None, tSampling_interval=3, start_Time = 0.0, dTin = 1.0,
+        inout_timeName = 'time', time_unitString ='hours since 2010-10-01 00:00:00 UTC', in_Xcoord = 'lon_110', in_Ycoord='lat_110'):
+
+    """This re-grids a netcdf to target/reference resolution
+    dTin = input time step; target time step = tSampling_interval * dTin
+    Input coordinates are time, y, x
+    Warning: Works only if the target boundary is within the input boundary & the coordinates directions are
+    the same, i.e. y increasing / decreasing """
+    #epsg=4326
+    # Read input geo information
+    #srs_data = gdal.Open(input_netcdf, GA_ReadOnly)
+    srs_data = gdal.Open('NetCDF:"'+input_netcdf+'":'+inout_varName)
+    srs_geotrs = srs_data.GetGeoTransform()
+    Nxin = srs_data.RasterXSize
+    Nyin = srs_data.RasterYSize
+    if in_epsgCode == None:
+        srs_proj = srs_data.GetProjection()
+    else:
+        srs_proj = osr.SpatialReference()
+        srs_proj.ImportFromEPSG(in_epsgCode)
+
+    srs_projt = srs_proj.ExportToWkt()
+    srs_data = None
+
+    #Add dummy dimensions and variables
+    temp_netcdf = os.path.join(os.path.dirname(output_netcdf), 'temp_timespaceResample.nc')
+    cmdString = "nccopy -k 4  "+reference_netcdf+" "+temp_netcdf             #output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'copy netcdf with dimensions')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
+    """
+    temp_netcdf_1 = os.path.join(os.path.dirname(output_netcdf), 'temp_1.nc')
+    cmdString = "ncrename -v " + variable_name + "," + variable_name + "_2 " + \
+                input_netcdf + " " + temp_netcdf_1
+    subprocess_response_dict = call_subprocess(cmdString, 'copy netcdf with rename old dimensions')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
+    """
+
+    ncIn = netCDF4.Dataset(input_netcdf,"r") # format='NETCDF4')
+    xin = ncIn.variables[in_Xcoord][:]
+    yin = ncIn.variables[in_Ycoord][:]
+    timeLen = len(ncIn.dimensions[inout_timeName])
+    dataType = ncIn.variables[in_Xcoord].datatype               # data type for time variable same as x variable
+    vardataType = ncIn.variables[inout_varName].datatype
+    tin = numpy.zeros(int(timeLen/tSampling_interval),dtype=dataType)
+    for tk in range(int(timeLen/tSampling_interval)):
+        tin[tk] = start_Time + tk*dTin*tSampling_interval
+
+    ncOut = netCDF4.Dataset(temp_netcdf,"r+", format='NETCDF4')
+    xout = ncOut.variables['x'][:]
+    yout = ncOut.variables['y'][:]
+    ref_grid_mapping = getattr(ncOut.variables[ref_varName],'grid_mapping')
+    ncOut.createDimension(inout_timeName,timeLen/tSampling_interval)
+    ncOut.createVariable(inout_timeName,dataType,(inout_timeName,))
+    ncOut.variables[inout_timeName][:] = tin[:]
+    ncOut.createVariable(inout_varName,vardataType,(inout_timeName,'y','x',))
+
+    #Copy attributes
+    varAtts = ncIn.variables[inout_varName].ncattrs()
+    attDict = dict.fromkeys(varAtts)
+    grid_map_set = False
+    for attName in varAtts:
+        attDict[attName] = getattr(ncIn.variables[inout_varName],attName)
+        if attName == 'grid_mapping':
+            attDict[attName] = ref_grid_mapping
+            grid_map_set = True
+    if grid_map_set == False:                        #no attribute grid-map in input variable attributes
+        attDict['grid_mapping'] = ref_grid_mapping
+    ncOut.variables[inout_varName].setncatts(attDict)
+
+    """tAtts = ncIn.variables[in_Time].ncattrs()
+    attDict = dict.fromkeys(tAtts)
+    for attName in tAtts:
+        attDict[attName] = getattr(ncIn.variables[in_Time],attName)
+    """
+    attDict = {'calendar':'standard', 'long_name':'time'}
+    attDict['units'] = time_unitString
+    ncOut.variables[inout_timeName].setncatts(attDict)
+    ncOut.close()
+    #delete old variables
+    cmdString = "ncks -4 -C -O -x -v "+ref_varName+" "+temp_netcdf+" "+output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'delete old/reference variable')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
+
+    #re-open file to write re-gridded data
+    ncOut = netCDF4.Dataset(output_netcdf,"r+") #, format='NETCDF4')
+    varin = numpy.zeros((len(yin),len(xin)),dtype=vardataType)
+    varout = numpy.zeros((len(yout),len(xout)),dtype=vardataType)
+    for tk in range(int(timeLen/tSampling_interval) - 1):
+        varout[:,:] = 0
+        for tkin in range(tSampling_interval):
+            varin[:,:] = ncIn.variables[inout_varName][tk*tSampling_interval+tkin,:,:]
+            #Because gdal and netCDF4 (and NCO) read the data array in (y-) reverse order, need to adjust orientation
+            varin_rev = varin[::-1]
+            varout[:,:] = varout[:,:] + project_and_resample_Array(varin_rev, srs_geotrs, srs_projt, Nxin, Nyin, reference_netcdf)
+        varout[:,:] = varout[:,:] / tSampling_interval
+        ncOut.variables[inout_varName][tk,:,:] = varout[::-1]         # reverse back the array for netCDF4
+    ncIn.close()
+    ncOut.close()
+
+    subprocess_response_dict['message'] = "project, sunset and resample of netcdf was successful"
+    return subprocess_response_dict
+    #delete temp netcdf file
+    #os.remove(temp_netcdf)
+
+
+def compute_average_of_two_netCDF_vars(input_netcdf1, input_netcdf2, output_netcdf, varName1, varName2,  varNameO,
+                                       varOut_unit = 'm/s', varOut_longName='Average wind speed at height 10 m'):            #output_netcdfVP, varNameVP,
+    """This re-grids a netcdf to target/reference resolution
+    Input coordinates are time, y, x
+    Warning: Works only if the target boundary is within the input boundary & the coordinates directions are
+    the same, i.e. y increasing / decreasing """
+
+    #Copy dimensions and variables
+    """temp_netcdf = 'temp'+output_netcdfRH
+    cmdString = "nccopy -k 4 "+input_netcdfT+" "+temp_netcdf             #output_netcdf
+    callSubprocess(cmdString, 'copy netcdf with dimensions')"""
+
+    #delete old variable
+    cmdString = "ncks -4 -C -O -x -v "+varName1+" "+input_netcdf1+" "+output_netcdf
+    subprocess_response_dict = call_subprocess(cmdString, 'delete old/reference variable')
+    if subprocess_response_dict['success'] == 'False':
+        return subprocess_response_dict
+
+    ncInU = netCDF4.Dataset(input_netcdf1,"r") # format='NETCDF4')
+    vardataType = ncInU.variables[varName1].datatype
+    ref_grid_mapping = 'grid mmapping'    #getattr(ncInU.variables[varNameU],'grid_mapping')
+    timeLen = len(ncInU.dimensions['time'])
+
+    ncInV = netCDF4.Dataset(input_netcdf2,"r") # format='NETCDF4')
+
+    ncOut = netCDF4.Dataset(output_netcdf,"r+", format='NETCDF4')
+    ncOut.createVariable(varNameO,vardataType,('time','y','x',))
+    attDict = {'name':varNameO, 'long_name':varOut_longName}
+    attDict['units'] = varOut_unit
+    attDict['grid_mapping'] = ref_grid_mapping
+    ncOut.variables[varNameO].setncatts(attDict)
+
+    #varin = numpy.zeros((len(yin),len(xin)),dtype=vardataType)
+    #varout = numpy.zeros((len(yout),len(xout)),dtype=vardataType)
+    for tk in range(int(timeLen-1)):
+        varinU = ncInU.variables[varName1][tk,:,:]
+        varinV = ncInV.variables[varName2][tk,:,:]
+        Wave1 = varinU*varinU
+        Wave2 = varinV*varinV
+        Wave3 = Wave1+Wave2
+        Wave = numpy.sqrt(Wave3)
+        ncOut.variables[varNameO][tk,:,:] = Wave[:,:]
+
+    ncInU.close()
+    ncInV.close()
+    ncOut.close()
+
+    subprocess_response_dict['message'] = "compute average of netcdf was successful"
+    return subprocess_response_dict
+    #delete temp netcdf file
+    #os.remove(temp_netcdf)
+
 
 def project_subset_and_resample_netcdf_to_reference_netcdf(input_netcdf, reference_netcdf, variable_name, output_netcdf):
     """This re-grids a netcdf to target/reference resolution
@@ -770,17 +995,17 @@ def raster_to_netCDF(input_raster, output_netcdf):
     callSubprocess(cmdString, 'raster to netcdf')
 
 #This concatenates netcdf files along the time dimension
-def concatenate_netCDF(input_netcdf1, input_netcdf2, output_netcdf):
+def concatenate_netCDF(input_netcdf1, input_netcdf2, output_netcdf, inout_timeName = 'time'):  #, inout_timeName = 'time'):
     """To  Do: may need to specify output no-data value
     """
-    cmdString = "ncks --mk_rec_dmn time "+input_netcdf1+" tempNetCDF1.nc"
+    cmdString = "ncks --mk_rec_dmn  "+inout_timeName+" "+input_netcdf1+" tempNetCDF1.nc"
     callSubprocess(cmdString, "intermediate netcdf with record dimension")
-    cmdString = "ncks --mk_rec_dmn time "+input_netcdf2+" tempNetCDF2.nc"
+    cmdString = "ncks --mk_rec_dmn  "+inout_timeName+" "+input_netcdf2+" tempNetCDF2.nc"
     subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
     #
-    cmdString = "ncrcat -4 tempNetCDF1.nc tempNetCDF2.nc "+output_netcdf
+    cmdString = "ncrcat -4 -H -h tempNetCDF1.nc tempNetCDF2.nc "+output_netcdf
     subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
 
     #delete intermediate files

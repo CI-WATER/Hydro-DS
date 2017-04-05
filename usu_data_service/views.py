@@ -28,6 +28,59 @@ WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.
 logger = logging.getLogger(__name__)
 
 funcs = {
+
+          'computeaverageoftwonetcdfvars':
+                {
+                    'function_to_execute': compute_average_of_two_netCDF_vars,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'averageTwonetCDFs.nc'}],
+                    'user_file_inputs': ['input_netcdf1', 'input_netcdf2'],
+                    'user_inputs': ['varName1', 'varName2',  'varNameO', 'varOut_unit', 'varOut_longName'],
+                    'validator': ComputeAverageOfTwoNetCDFVarsRequestValidator
+                },
+
+          'subsetprojecttimespaceresamplenetcdftoreferencenetcdf':
+                {
+                    'function_to_execute': subset_project_timespaceResample_netCDF_to_referenceNetCDF,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'subsetprojSpaceTimeResample.nc'}],
+                    'user_file_inputs': ['input_netcdf', 'reference_netcdf'],
+                    'user_inputs': ['inout_varName', 'ref_varName', 'in_epsgCode', 'tSampling_interval',
+                                    'start_Time', 'dTin', 'inout_timeName', 'time_unitString', 'in_Xcoord', 'in_Ycoord'],
+                    'validator': SubsetProjectTimeSpaceResampleNetCDFToReferenceNetCDF
+                },
+
+          'subsetnetcdfbydatetime':
+                {
+                    'function_to_execute': subset_netCDF_by_datetime,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'subsetDateTime.nc'}],
+                    'user_file_inputs': ['input_netcdf'],
+                    'user_inputs': ['startDateTime', 'endDateTime', 'dT', 'inout_timeName'],
+                    'validator': SubsetNetCDFbyDateTimeRequestValidator
+                },
+
+          'concatenatemultiplenetcdf':
+                {
+                   'function_to_execute': concatenate_multiple_netCDF,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_netcdf': 'concatenatedMultiple.nc'}],
+                   'user_file_inputs': ['input_netcdf_list'],
+                   #'user_list_inputs': 'input_netcdf_list_json', # ['input_netcdf1', 'input_netcdf2'],
+                   'user_inputs': ['inout_timeName'],
+                   'validator': ConcatenateMultipleNetCDFRequestValidator
+                },
+
+          'subsetnetcdfbycoordinates':
+                {
+                    'function_to_execute': subset_netcdf_by_coordinates,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'subsetCoords.nc'}],
+                    'user_file_inputs': ['input_netcdf'],
+                    'user_inputs': ['leftX', 'topY', 'rightX', 'bottomY', 'in_Xcoord', 'in_Ycoord'],
+                    'validator': SubsetNetcdfByCoordinatesRequestValidator
+                },
+
           'subsetrastertobbox':
                 {
                     'function_to_execute': get_raster_subset,
@@ -294,7 +347,7 @@ funcs = {
                    'function_to_execute': concatenate_netCDF,
                    'file_inputs': [],
                    'file_outputs': [{'output_netcdf': 'concatenated.nc'}],
-                   'user_inputs': [],
+                   'user_inputs': ['inout_timeName'],
                    'user_file_inputs': ['input_netcdf1', 'input_netcdf2'],
                    'validator': ConcatenateNetCDFRequestValidator
                 },
@@ -396,14 +449,10 @@ funcs = {
 class RunService(APIView):
     """
     Executes the specified service/function
-
     URL: /api/dataservice/{func}
     HTTP method: GET
-
     :param func: name of the function to execute
-
     The function specific parameter values needs to be passed as part of the query string
-
     :raises
     ValidationError: json response format: {'parameter_1': [parameter_1_error], 'parameter_2': [parameter_2_error], ..}
     """
@@ -453,24 +502,59 @@ class RunService(APIView):
         # comes as a file name for static data file on the server, get the static data file path from the file name
         # and pass that file path to the executing function
         for p in params['user_file_inputs']:
-            input_file = request_validator.validated_data[p]
-            if is_input_file_url_path(input_file):
-                uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path,
-                                                                                 request_validator.validated_data[p])
-                if uuid_input_file_path.endswith('.zip'):
-                    unzip_shape_file(uuid_input_file_path)
-                    uuid_input_file_path = uuid_input_file_path.replace('zip', 'shp')
+            input_files = request_validator.validated_data[p]
+            input_file_path_list = []
+            if not isinstance(input_files, list):
+                input_files = [input_files]
+            for input_file in input_files:
+                if is_input_file_url_path(input_file):
+                    uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path,
+                                                                                     request_validator.validated_data[p])
+                    if uuid_input_file_path.endswith('.zip'):
+                        unzip_shape_file(uuid_input_file_path)
+                        uuid_input_file_path = uuid_input_file_path.replace('zip', 'shp')
 
-                subprocparams[p] = uuid_input_file_path
-                logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
-            else:
-                static_data_file_path = get_static_data_file_path(input_file)
-                subprocparams[p] = static_data_file_path
-                logger.debug('input_static_file_path:' + static_data_file_path)
+                    if len(input_files) == 1:
+                        subprocparams[p] = uuid_input_file_path
+                    else:
+                        input_file_path_list.append(uuid_file_path)
+                    logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
+                else:
+                    static_data_file_path = get_static_data_file_path(input_file)
+                    if len(input_files) == 1:
+                        subprocparams[p] = static_data_file_path
+                    else:
+                        input_file_path_list.append(static_data_file_path)
+                    logger.debug('input_static_file_path:' + static_data_file_path)
+
+            if len(input_files) > 1:
+                subprocparams[p] = input_file_path_list
+
+        #list from json string
+        # if func == 'concatenatemultiplenetcdf':
+        #     pdict = params['user_list_inputs']
+        #     #print(pdict)
+        #     input_fileList = request_validator.validated_data[pdict]
+        #     #print(input_fileList)
+        #     user_input_json_list = json.loads(input_fileList)
+        #     input_file_path_list = []
+        #     for input_file in user_input_json_list:
+        #         #input_file = request_validator.validated_data[p]
+        #         #input_file = user_input_json_list[p]
+        #         if is_input_file_url_path(input_file):
+        #             uuid_input_file_path = copy_input_file_to_uuid_working_directory(uuid_file_path, input_file)
+        #                                                                              #request_validator.validated_data[p])
+        #             #subprocparams[p] = uuid_input_file_path
+        #             input_file_path_list.append(uuid_input_file_path)
+        #             logger.debug('input_uuid_file_path_from_url_path:' + uuid_input_file_path)
+        #         else:
+        #             logger.debug('error file does not exisit in user space: ' + input_file)
+        #     subprocparams[pdict] = json.dumps(input_file_path_list)
 
         # execute the function
         result = params['function_to_execute'](**subprocparams)
         logger.debug('result from function ({function_name}):{result}'.format(function_name=func, result=result))
+
 
         # process function output results  # TODO remove this
         data = []
