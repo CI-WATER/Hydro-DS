@@ -187,7 +187,7 @@ def run_ueb_model(resource_id, hs_username=None, hs_password=None,
             delete_working_uuid_directory(uuid_file_path)
 
     return {'success': 'True',
-            'message': 'Please check resource http://www.hydroshare.org/resource/{}'.format(resource_id)}
+            'message': 'Please check the model outputs in the HydroShare resource http://www.hydroshare.org/resource/{}'.format(resource_id)}
 
 
 def validate_model_input_files(model_input_folder):
