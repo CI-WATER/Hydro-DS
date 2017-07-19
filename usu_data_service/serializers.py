@@ -464,5 +464,5 @@ class RasterCalculator(serializers.Serializer):
     input_raster = serializers.URLField(required=True)
     function = serializers.CharField(required=True)
     outputfile = serializers.CharField(required=False)
-    NoDataValue = serializers.IntegerField(required=False)
+    NoDataValue = serializers.FloatField(required=False)
     type = serializers.CharField(required=False)

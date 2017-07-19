@@ -284,7 +284,7 @@ def computeRasterSlope(input_raster=None, output_raster=None):
     return call_subprocess(cmdString,'compute slope')
 
 
-def raster_calculator(input_raster=None, function=None, outputfile=None, NoDataValue=-1000, type='Int6', **kwargs):
+def raster_calculator(input_raster=None, function=None, outputfile=None, NoDataValue=-1000, type='Int16', **kwargs):
     try:
         Calc(calc=function, A=input_raster, outfile=outputfile, NoDataValue=NoDataValue, type=type)
         response_dict = {'success': 'True'}
