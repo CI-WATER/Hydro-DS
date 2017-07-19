@@ -22,6 +22,7 @@ from usu_data_service.local_settings import *
 from usu_data_service.capabilities import *
 
 from usu_data_service.servicefunctions.ueb_model_run import run_ueb_simulation_job
+from usu_data_service.servicefunctions.model_parameter_list import create_model_parameter_files
 
 WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.tif')
 
@@ -414,6 +415,7 @@ funcs = {
                    'validator': DownloadStreamflowRequestValidator
                 },
 
+
         # prepare ueb model input
         'createuebinput':
                 {
@@ -439,7 +441,24 @@ funcs = {
                                    'token'],
                    'user_file_inputs': [],
                    'validator': RunUebModelValidator
-                }
+                },
+
+        # prepare ueb_model_parameter_file
+        'createuebparameterfiles':
+        {
+            'function_to_execute': create_model_parameter_files,
+            'file_inputs': [],
+            'file_outputs': [{'output_control': 'control.dat'},
+                             {'output_inputcontrol': 'inputcontrol.dat'},
+                             {'output_outputcontrol': 'outputcontrol.dat'},
+                             {'output_siteinitial': 'siteinitial.dat'},
+                             {'output_param': 'param.dat'},
+                             ],
+            'user_inputs': ['topY', 'bottomY', 'leftX', 'rightX','wsic','usic','tic','wcic', 'ts_last',
+                            'startDateTime','endDateTime'],
+            'user_file_inputs': [],
+            'validator': CreateUebParameterFiles
+        },
 
         }
 

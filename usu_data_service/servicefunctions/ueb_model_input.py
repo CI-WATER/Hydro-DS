@@ -278,37 +278,21 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                 'message': 'Failed to prepare the climate variables data'}
 
     # prepare the parameter files
-    try:
+    output_control = os.path.join(uuid_file_path, 'control.dat')
+    output_inputcontrol = os.path.join(uuid_file_path, 'inputcontrol.dat')
+    output_outputcontrol = os.path.join(uuid_file_path, 'outputcontrol.dat')
+    output_siteinitial = os.path.join(uuid_file_path, 'siteinitial.dat')
+    output_param = os.path.join(uuid_file_path, 'param.dat')
+    response = create_model_parameter_files(output_control, output_inputcontrol,
+                                 output_outputcontrol, output_siteinitial, output_param,
+                                 startDateTime, endDateTime, topY, bottomY,
+                                 rightX, leftX, usic, wsic, tic, wcic,
+                                 ts_last)
+    if response['success'] == 'True':
+        parameter_file_path = [output_control, output_inputcontrol,output_outputcontrol,
+                                output_siteinitial,output_param]
+    else:
         parameter_file_path = []
-        # update the control.dat content
-        start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
-        end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
-        start_str = datetime.strftime(start_obj, '%Y %M %d') + ' 0.0'
-        end_str = datetime.strftime(end_obj, '%Y %M %d') + ' 0.0'
-        file_contents_dict['control.dat'][8] = start_str
-        file_contents_dict['control.dat'][9] = end_str
-
-        # update the siteinitial.dat content
-        lat = 0.5 * (topY+bottomY)/2.0
-        lon = 0.5 * (rightX+leftX)
-        file_contents_dict['siteinitial.dat'][45] = str(lat)
-        file_contents_dict['siteinitial.dat'][96] = str(lon)
-
-        site_variables_dict = {3: usic, 6: wsic, 9: tic, 12: wcic, 93: ts_last}
-        for line, var_name in site_variables_dict.items():
-            if var_name:
-                file_contents_dict['siteinitial.dat'][line] = str(var_name)
-
-        # write list in parameter files
-        for file_name, file_content in file_contents_dict.items():
-            file_path = os.path.join(uuid_file_path, file_name)
-            with open(file_path, 'w') as para_file:
-                para_file.write('\r\n'.join(file_content))  # the line separator is \r\n
-            parameter_file_path.append(file_path)
-
-    except Exception as e:
-        parameter_file_path = []
-        pass
 
     # share result to HydroShare
     try:
@@ -400,7 +384,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
             delete_working_uuid_directory(uuid_file_path)
 
         return {'success': 'False',
-                'message': 'Failed to share the model input package to HydroShare'}
+                'message': 'Failed to share the model input package to HydroShare' + str(parameter_file_path)}
 
     delete_working_uuid_directory(uuid_file_path)
 

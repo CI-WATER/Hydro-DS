@@ -134,6 +134,9 @@ def get_capabilites():
     capabilities.append(_get_capability_dict(service_name='runuebmodel',
                                              description="Run ueb model using HydroShare resource"))
 
+    capabilities.append(_get_capability_dict(service_name='createuebparameterfiles',
+                                             description="Generate the model parameter setting files"))
+
     return capabilities
 
 
@@ -189,6 +192,7 @@ def get_service_info(service_name):
     services_info_dict['zipfiles'] = _get_zipfiles_info
     services_info_dict['createuebinput'] = _get_createuebinput_info
     services_info_dict['runuebmodel'] = _get_runuebmodel_info
+    services_info_dict['createuebparameterfiles'] = _get_createuebparameterfiles_info
 
 
     if service_name in services_info_dict:
@@ -1530,6 +1534,19 @@ def _get_runuebmodel_info():
                                                 required=False,
                                                 type='string'),
                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_createuebparameterfiles_info():
+    service_name = 'createuebparameterfiles'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                _get_param_dict(name='startDateTime',
+                                                description='The start time for model simulation',
+                                                required=True,
+                                                type='string'),
+                            ]
                             },
                            _get_json_response_format(data_dict={})]
             }

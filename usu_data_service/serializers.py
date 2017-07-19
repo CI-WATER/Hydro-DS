@@ -439,3 +439,23 @@ class RunUebModelValidator(serializers.Serializer):
     token = serializers.CharField(required=False)
     hs_username = serializers.CharField(required=False)
     hs_password = serializers.CharField(required=False)
+
+
+class CreateUebParameterFiles(serializers.Serializer):
+    topY = serializers.FloatField(required=True)
+    bottomY = serializers.FloatField(required=True)
+    leftX = serializers.FloatField(required=True)
+    rightX = serializers.FloatField(required=True)
+    startDateTime = serializers.CharField(required=True)
+    endDateTime = serializers.CharField(required=True)
+    usic = serializers.FloatField(required=True)
+    wsic = serializers.FloatField(required=True)
+    tic = serializers.FloatField(required=True)
+    wcic = serializers.FloatField(required=True)
+    ts_last = serializers.FloatField(required=True)
+    output_control = serializers.CharField(required=False)
+    output_inputcontrol = serializers.CharField(required=False)
+    output_outputcontrol = serializers.CharField(required=False)
+    output_siteinitial= serializers.CharField(required=False)
+    output_param = serializers.CharField(required=False)
+
