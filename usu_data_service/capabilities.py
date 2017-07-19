@@ -137,6 +137,9 @@ def get_capabilites():
     capabilities.append(_get_capability_dict(service_name='createuebparameterfiles',
                                              description="Generate the model parameter setting files"))
 
+    capabilities.append(_get_capability_dict(service_name='rastercalculator',
+                                             description="raster calculator to derive new raster with a given raster file"))
+
     return capabilities
 
 
@@ -193,6 +196,7 @@ def get_service_info(service_name):
     services_info_dict['createuebinput'] = _get_createuebinput_info
     services_info_dict['runuebmodel'] = _get_runuebmodel_info
     services_info_dict['createuebparameterfiles'] = _get_createuebparameterfiles_info
+    services_info_dict['rastercalculator'] = _get_rastercalculator_info
 
 
     if service_name in services_info_dict:
@@ -1546,6 +1550,40 @@ def _get_createuebparameterfiles_info():
                                                 description='The start time for model simulation',
                                                 required=True,
                                                 type='string'),
+                                _get_param_dict(name='endDateTime',
+                                                description='The end time for model simulation',
+                                                required=True,
+                                                type='string'),
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+
+def _get_rastercalculator_info():
+    service_name = 'rastercalculator'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                _get_param_dict(name='input_raster',
+                                                description='HydroDS url file path for a user owned raster file to be calculated',
+                                                required=True,
+                                                type='string'),
+                                _get_param_dict(name='outputfile',
+                                                description='Output file name for the result',
+                                                required=False,
+                                                type='string'),
+                                _get_param_dict(name='function',
+                                                description='logical expresion of the calculation',
+                                                required=True,
+                                                type='string'),
+                                _get_param_dict(name='NoDataValue',
+                                                description='No data value of the output file',
+                                                required=False,
+                                                type='Integer'),
+                                _get_param_dict(name='type',
+                                                description='Data type of the output file',
+                                                required=False,
+                                                type='String'),
                             ]
                             },
                            _get_json_response_format(data_dict={})]
