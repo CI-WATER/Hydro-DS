@@ -459,3 +459,10 @@ class CreateUebParameterFiles(serializers.Serializer):
     output_siteinitial= serializers.CharField(required=False)
     output_param = serializers.CharField(required=False)
 
+
+class RasterCalculator(serializers.Serializer):
+    input_raster = serializers.URLField(required=True)
+    function = serializers.CharField(required=True)
+    outputfile = serializers.CharField(required=False)
+    NoDataValue = serializers.IntegerField(required=False)
+    type = serializers.CharField(required=False)

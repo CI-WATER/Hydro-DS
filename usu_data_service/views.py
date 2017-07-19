@@ -445,20 +445,30 @@ funcs = {
 
         # prepare ueb_model_parameter_file
         'createuebparameterfiles':
-        {
-            'function_to_execute': create_model_parameter_files,
-            'file_inputs': [],
-            'file_outputs': [{'output_control': 'control.dat'},
-                             {'output_inputcontrol': 'inputcontrol.dat'},
-                             {'output_outputcontrol': 'outputcontrol.dat'},
-                             {'output_siteinitial': 'siteinitial.dat'},
-                             {'output_param': 'param.dat'},
-                             ],
-            'user_inputs': ['topY', 'bottomY', 'leftX', 'rightX','wsic','usic','tic','wcic', 'ts_last',
-                            'startDateTime','endDateTime'],
-            'user_file_inputs': [],
-            'validator': CreateUebParameterFiles
-        },
+                {
+                    'function_to_execute': create_model_parameter_files,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_control': 'control.dat'},
+                                     {'output_inputcontrol': 'inputcontrol.dat'},
+                                     {'output_outputcontrol': 'outputcontrol.dat'},
+                                     {'output_siteinitial': 'siteinitial.dat'},
+                                     {'output_param': 'param.dat'},
+                                     ],
+                    'user_inputs': ['topY', 'bottomY', 'leftX', 'rightX','wsic','usic','tic','wcic', 'ts_last',
+                                    'startDateTime','endDateTime'],
+                    'user_file_inputs': [],
+                    'validator': CreateUebParameterFiles
+                },
+
+        'rastercalculator':
+                {
+                    'function_to_execute': raster_calculator,
+                    'file_inputs': [],
+                    'file_outputs': [{'outputfile': 'output.tif'}],
+                    'user_inputs': ['function', 'NoDataValue', 'type'],
+                    'user_file_inputs': ['input_raster'],
+                    'validator': RasterCalculator
+                },
 
         }
 

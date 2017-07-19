@@ -10,7 +10,7 @@ from usu_data_service.servicefunctions.model_parameter_list import *
 from usu_data_service.models import Job
 from usu_data_service.servicefunctions.run_job import run_service, run_service_done
 from usu_data_service.servicefunctions.terrainFunctions import get_raster_subset, project_shapefile_EPSG, \
-    delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope
+    delineate_Watershed_atShapeFile, rasterToNetCDF, computeRasterAspect,computeRasterSlope, raster_calculator
 from usu_data_service.servicefunctions.watershedFunctions import project_and_resample_Raster_EPSG, \
     create_OutletShape_Wrapper, resample_Raster
 from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_variable, subset_netCDF_to_reference_raster, \
@@ -100,8 +100,10 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
                                                                stream_threshold=streamThreshold)
         else:
             watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
-            Watershed_hires = Calc(calc='(A<0)*-1001+1', A=watershedDEM_file_path, outfile=watershed_hires_dem_file_path,
-                                   NoDataValue=-1000, type='Int16')  # remember to keep only two values in the netcdf file, 1 or no data value!
+
+            raster_calculator(function='(A<0)*-1001+1', input_raster=watershedDEM_file_path,
+                              outputfile=watershed_hires_dem_file_path, NoDataValue=-1000, type='Int16')
+
 
         # Resample watershed grid to coarser grid # TODO when outlet point is optional make the watershed.nc only include integers
         if dxRes == dx and dyRes == dy:

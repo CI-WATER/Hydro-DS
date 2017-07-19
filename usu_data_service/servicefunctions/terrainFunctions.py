@@ -19,6 +19,7 @@ from . watershedFunctions import create_OutletShape
 from . netcdfFunctions import reverse_netCDF_yaxis_and_rename_variable
 from usu_data_service.utils import *
 from .utils import *
+from usu_data_service.servicefunctions.gdal_calc import Calc   # TODO: upload to production
 
 def get_raster_subset(input_raster=None, output_raster=None, xmin=None, ymax=None, xmax=None, ymin=None):
     #parameters are ulx uly lrx lry
@@ -282,3 +283,12 @@ def computeRasterSlope(input_raster=None, output_raster=None):
     cmdString = "gdaldem"+" "+"slope"+" "+input_raster+" "+output_raster+" "+"-compute_edges"
     return call_subprocess(cmdString,'compute slope')
 
+
+def raster_calculator(input_raster=None, function=None, outputfile=None, NoDataValue=-1000, type='Int6', **kwargs):
+    try:
+        Calc(calc=function, A=input_raster, outfile=outputfile, NoDataValue=NoDataValue, type=type)
+        response_dict = {'success': 'True'}
+    except:
+        response_dict = {'success': 'False',
+                         'message': 'Failed to convert the raster data as integer value'}
+    return response_dict
