@@ -25,11 +25,20 @@ def create_model_parameter_files(output_control, output_inputcontrol,
                                  rightX=None, leftX=None, usic=None, wsic=None, tic=None, wcic=None,
                                  ts_last=None, **kwargs):
     try:
+
         # update the control.dat content
-        start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
-        end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
-        start_str = datetime.strftime(start_obj, '%Y %M %d') + ' 0.0'
-        end_str = datetime.strftime(end_obj, '%Y %M %d') + ' 0.0'
+        if len(startDateTime.split(' ')) == 1:
+            start_obj = datetime.strptime(startDateTime, '%Y/%M/%d')
+            end_obj = datetime.strptime(endDateTime, '%Y/%M/%d')
+            start_str = datetime.strftime(start_obj, '%Y %M %d') + ' 0.0'
+            end_str = datetime.strftime(end_obj, '%Y %M %d') + ' 0.0'
+        else:
+            start_obj = datetime.strptime(startDateTime, '%Y/%M/%d %H')
+            end_obj = datetime.strptime(endDateTime, '%Y/%M/%d %H')
+            start_str = datetime.strftime(start_obj, '%Y %M %d %H')
+            end_str = datetime.strftime(end_obj, '%Y %M %d %H')
+
+
         file_contents_dict['control.dat'][8] = start_str
         file_contents_dict['control.dat'][9] = end_str
 
@@ -62,6 +71,6 @@ def create_model_parameter_files(output_control, output_inputcontrol,
 
     except Exception as e:
         response_dict = {'success': 'False',
-                         'message': e.message}
+                         'message': 'failed to create the parameter files'}
 
     return response_dict

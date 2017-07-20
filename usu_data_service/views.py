@@ -443,7 +443,7 @@ funcs = {
                    'validator': RunUebModelValidator
                 },
 
-        # prepare ueb_model_parameter_file
+        # create ueb parameter files
         'createuebparameterfiles':
                 {
                     'function_to_execute': create_model_parameter_files,
@@ -460,6 +460,7 @@ funcs = {
                     'validator': CreateUebParameterFiles
                 },
 
+        # raster calculator (convert grid float value as 1 or no data value)
         'rastercalculator':
                 {
                     'function_to_execute': raster_calculator,
@@ -505,10 +506,13 @@ class RunService(APIView):
         if not request_validator.is_valid():
             raise DRF_ValidationError(detail=request_validator.errors)
 
-        subprocparams = {'request': request}
+
+        subprocparams = {}
+
         for param_dict_item in params['file_inputs']:
             for param_name in param_dict_item:
                 subprocparams[param_name] = param_dict_item[param_name]
+
 
         # generate uuid file name for each parameter in file_outputs dict
         uuid_file_path = generate_uuid_file_path()
@@ -581,6 +585,9 @@ class RunService(APIView):
         #     subprocparams[pdict] = json.dumps(input_file_path_list)
 
         # execute the function
+        if func in ['runuebmodel', 'createuebinput']:
+           subprocparams['request'] = request
+
         result = params['function_to_execute'](**subprocparams)
         logger.debug('result from function ({function_name}):{result}'.format(function_name=func, result=result))
 
