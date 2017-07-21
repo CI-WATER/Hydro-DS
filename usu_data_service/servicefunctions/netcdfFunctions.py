@@ -1032,15 +1032,17 @@ def combineNetCDFs(input_netcdf1, input_netcdf2, output_netcdf):
 
 def callSubprocess(cmdString, debugString):
     cmdargs = shlex.split(cmdString)
-    debFile = open('debug_file.txt', 'w')
-    debFile.write('Starting %s \n' % debugString)
-    retValue = subprocess.call(cmdargs,stdout=debFile)
-    if (retValue==0):
-        debFile.write('%s Successful\n' % debugString)
-        debFile.close()
-    else:
-        debFile.write('There was error in %s\n' % debugString)
-        debFile.close()
+    # import tempfile
+    # dir = tempfile.mktemp()
+    # debFile = open('debug_file.txt', 'w')
+    # debFile.write('Starting %s \n' % debugString)
+    retValue = subprocess.call(cmdargs, stdout=None)
+    # if (retValue==0):
+    #     debFile.write('%s Successful\n' % debugString)
+    #     debFile.close()
+    # else:
+    #     debFile.write('There was error in %s\n' % debugString)
+    #     debFile.close()
 
 
 #This function from: http://stackoverflow.com/questions/8661537/how-to-perform-bilinear-interpolation-in-python

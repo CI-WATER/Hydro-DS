@@ -181,12 +181,13 @@ def delineate_Watershed_atShapeFile(input_DEM_raster, input_outlet_shapefile, ou
                                     stream_threshold):
     """TauDEM doesn't take compressed file; uncompress file
         ToDO:  Check compression first"""
-    temp_raster = 'temp.tif'
+
+    file_folder = os.path.dirname(input_DEM_raster)
+    temp_raster = os.path.join(file_folder, 'temp.tif')
+
     retDictionary = uncompressRaster(input_DEM_raster, temp_raster)
     if retDictionary['success']=="False":
         return retDictionary
-    file_folder = os.path.dirname(input_DEM_raster)
-    temp_raster_path = os.path.join(file_folder, temp_raster)
 
     input_raster = os.path.splitext(input_DEM_raster)[0]      #remove the .tif
     # pit remove
