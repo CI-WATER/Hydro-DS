@@ -998,19 +998,22 @@ def raster_to_netCDF(input_raster, output_netcdf):
 def concatenate_netCDF(input_netcdf1, input_netcdf2, output_netcdf, inout_timeName = 'time'):  #, inout_timeName = 'time'):
     """To  Do: may need to specify output no-data value
     """
-    cmdString = "ncks --mk_rec_dmn  "+inout_timeName+" "+input_netcdf1+" tempNetCDF1.nc"
-    callSubprocess(cmdString, "intermediate netcdf with record dimension")
-    cmdString = "ncks --mk_rec_dmn  "+inout_timeName+" "+input_netcdf2+" tempNetCDF2.nc"
+    tempNetCDF1 = os.path.join(os.path.dirname(input_netcdf1), 'tempNetCDF1.nc')  # this is to fix the bug when current working dir is not clear to create a new temp file
+    cmdString = "ncks --mk_rec_dmn  "+inout_timeName+" "+input_netcdf1+" "+tempNetCDF1
+    call_subprocess(cmdString, "intermediate netcdf with record dimension")
+
+    tempNetCDF2 = os.path.join(os.path.dirname(input_netcdf1), 'tempNetCDF2.nc')
+    cmdString = "ncks --mk_rec_dmn  "+inout_timeName+" "+input_netcdf2+" "+tempNetCDF2
     subprocess_response_dict = call_subprocess(cmdString, "intermediate netcdf with record dimension")
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
     #
-    cmdString = "ncrcat -4 -H -h tempNetCDF1.nc tempNetCDF2.nc "+output_netcdf
+    cmdString = "ncrcat -4 -H -h "+ tempNetCDF1 + " " + tempNetCDF2 +" " + output_netcdf
     subprocess_response_dict = call_subprocess(cmdString, "concatenate netcdf files")
 
     #delete intermediate files
-    os.remove('tempNetCDF1.nc')
-    os.remove('tempNetCDF2.nc')
+    os.remove(tempNetCDF1)
+    os.remove(tempNetCDF2)
     if subprocess_response_dict['success'] == 'False':
         return subprocess_response_dict
 
@@ -1032,17 +1035,15 @@ def combineNetCDFs(input_netcdf1, input_netcdf2, output_netcdf):
 
 def callSubprocess(cmdString, debugString):
     cmdargs = shlex.split(cmdString)
-    # import tempfile
-    # dir = tempfile.mktemp()
-    # debFile = open('debug_file.txt', 'w')
-    # debFile.write('Starting %s \n' % debugString)
+    debFile = open('debug_file.txt', 'w')
+    debFile.write('Starting %s \n' % debugString)
     retValue = subprocess.call(cmdargs, stdout=None)
-    # if (retValue==0):
-    #     debFile.write('%s Successful\n' % debugString)
-    #     debFile.close()
-    # else:
-    #     debFile.write('There was error in %s\n' % debugString)
-    #     debFile.close()
+    if (retValue==0):
+        debFile.write('%s Successful\n' % debugString)
+        debFile.close()
+    else:
+        debFile.write('There was error in %s\n' % debugString)
+        debFile.close()
 
 
 #This function from: http://stackoverflow.com/questions/8661537/how-to-perform-bilinear-interpolation-in-python
