@@ -18,6 +18,7 @@ from usu_data_service.servicefunctions.netcdfFunctions import netCDF_rename_vari
 from usu_data_service.servicefunctions.canopyFunctions import project_and_clip_raster, get_canopy_variable
 from usu_data_service.servicefunctions.gdal_calc import Calc   # TODO: upload to production
 from usu_data_service.servicefunctions.epsg_list import EPSG_List  # TODO: remember to add this file
+from usu_data_service.servicefunctions.create_uebsetup_file import generate_ueb_input_workflow_file
 
 
 def run_create_ueb_input_job(request, **kwargs):
@@ -296,16 +297,25 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
     else:
         parameter_file_path = []
 
+    # prepare the python ueb_setup scripts
+    python_scripts_path = generate_ueb_input_workflow_file(uuid_file_path,
+                                                           topY, bottomY, leftX, rightX,
+                                                           lat_outlet, lon_outlet,
+                                                           streamThreshold, watershedName,
+                                                           epsgCode, startDateTime, endDateTime,
+                                                           int(dx), int(dy), int(dxRes), int(dyRes),
+                                                           usic, wsic, tic, wcic, ts_last)
+
     # share result to HydroShare
     try:
         # zip model input files
-        ueb_input_files_path = ['watershed.nc', 'aspect.nc', 'slope.nc', 'cc.nc', 'hcan.nc', 'lai.nc',
-                                 'vp0.nc', 'srad0.nc', 'tmin0.nc', 'tmax0.nc', 'prcp0.nc']
+        # ueb_input_files_path = ['watershed.nc', 'aspect.nc', 'slope.nc', 'cc.nc', 'hcan.nc', 'lai.nc',
+        #                          'vp0.nc', 'srad0.nc', 'tmin0.nc', 'tmax0.nc', 'prcp0.nc','ueb_set.py','hydrogate.py']
 
         ueb_input_files_path = [Watershed_NC_file_path, aspect_nc_file_path, slope_nc_file_path, cc_nc_file_path,
-                                hcan_nc_file_path, lai_nc_file_path]+climate_files_path
+                                hcan_nc_file_path, lai_nc_file_path] + climate_files_path + python_scripts_path
 
-        zip_file_path = os.path.join(uuid_file_path, watershedName + '_input.zip' if watershedName else 'ueb_model_input.zip')
+        zip_file_path = os.path.join(uuid_file_path, 'ueb_model_input.zip')
         zf = zipfile.ZipFile(zip_file_path, 'w')
         for file_path in ueb_input_files_path+parameter_file_path:
             zf.write(file_path, os.path.basename(file_path))
