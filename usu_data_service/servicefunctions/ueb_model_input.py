@@ -77,7 +77,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         WatershedDEM = project_and_resample_Raster_EPSG(input_raster=subsetDEM_file_path,
                                                         output_raster=watershedDEM_file_path,
                                                         dx=dx, dy=dy, epsg_code=epsgCode,
-                                                        resample='near')  #TODO failed to make resapmle as parameter
+                                                        resample='bilinear')  #TODO failed to make resapmle as parameter
 
         # Watershed delineation
         if lon_outlet and lat_outlet:
