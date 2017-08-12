@@ -61,7 +61,7 @@ def project_and_resample_Raster_EPSG(input_raster, output_raster,  dx, dy, epsg_
     """
     #Project epsg
     cmdString = "gdalwarp -t_srs EPSG:"+str(epsg_code)+" -tr "\
-                +str(dx)+" "+str(dy)+" -r "+resample+" -overwrite "+input_raster+" "+output_raster
+                +str(dx)+" "+str(dy)+" -r "+resample + " -dstnodata -1"+" -overwrite "+input_raster+" "+output_raster  # set nodata value for result file this is to avoid making nodata value as 0.0
     return call_subprocess(cmdString, "project and re-grid Raster")
     #Delete temp file
     #os.remove("tempRaster.tif")

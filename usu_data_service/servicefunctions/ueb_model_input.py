@@ -77,7 +77,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         WatershedDEM = project_and_resample_Raster_EPSG(input_raster=subsetDEM_file_path,
                                                         output_raster=watershedDEM_file_path,
                                                         dx=dx, dy=dy, epsg_code=epsgCode,
-                                                        resample='bilinear')  #TODO failed to make resapmle as parameter
+                                                        resample='near')  #TODO failed to make resapmle as parameter
 
         # Watershed delineation
         if lon_outlet and lat_outlet:
@@ -102,8 +102,8 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         else:
             watershed_hires_dem_file_path = os.path.join(uuid_file_path, 'watershed.tif')
 
-            raster_calculator(function='(A<0)*-1001+1', input_raster=watershedDEM_file_path,
-                              outputfile=watershed_hires_dem_file_path, NoDataValue=-1000, type='Int16')
+            raster_calculator(function='(A<=0.0)*-1+1', input_raster=watershedDEM_file_path,
+                              outputfile=watershed_hires_dem_file_path, NoDataValue=0, type='Int32')
 
 
         # Resample watershed grid to coarser grid # TODO when outlet point is optional make the watershed.nc only include integers
@@ -398,7 +398,7 @@ def create_ueb_input(hs_username=None, hs_password=None, hs_client_id=None,hs_cl
         return {'success': 'False',
                 'message': 'Failed to share the model input package to HydroShare' + str(parameter_file_path)}
 
-    delete_working_uuid_directory(uuid_file_path)
+    # delete_working_uuid_directory(uuid_file_path)
 
     return {'success': 'True',
             'message': 'A model instance resource with name {} has been created. Please check resource http://www.hydroshare.org/resource/{}'.format(res_title, res_info)}
