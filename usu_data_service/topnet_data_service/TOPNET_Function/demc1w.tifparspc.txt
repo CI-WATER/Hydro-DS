@@ -1,0 +1,39 @@
+f 0 f.tif 
+ko 0 ko.tif 
+dth1 0 dth1.tif 
+dth2 0 dth2.tif 
+soildepth 0 sd.tif 
+dth2 0 dth2.tif 
+c -1 1 
+psif 0 psif.tif 
+chv -1 360 
+cc 1 lulcmmef.tif lutluc.txt 1 
+cr 1 lulcmmef.tif lutluc.txt 2 
+albedo 1 lulcmmef.tif lutluc.txt 3 
+LapseRate -1 0.0053 
+AverageElevation 0 demc1w.tiffel.tif 
+ImperviousFraction -1 0 
+TileDrainedFraction -1 0 
+DitchDrainedFraction -1 0 
+TileCoeff -1 0 
+DitchCoef -1 0 
+IrrigatedFraction -1 0 
+SprinklerFractionofIrrigation -1 0 
+IrrigationEfficiency -1 0 
+D_Thres -1 0 
+Z_Max -1 0.0042 
+D_Goal -1 0 
+kc_1 1 lulcmmef.tif lutkc.txt 1 
+kc_2 1 lulcmmef.tif lutkc.txt 2 
+kc_3 1 lulcmmef.tif lutkc.txt 3 
+kc_4 1 lulcmmef.tif lutkc.txt 4 
+kc_5 1 lulcmmef.tif lutkc.txt 5 
+kc_6 1 lulcmmef.tif lutkc.txt 6 
+kc_7 1 lulcmmef.tif lutkc.txt 7 
+kc_8 1 lulcmmef.tif lutkc.txt 8 
+kc_9 1 lulcmmef.tif lutkc.txt 9 
+kc_10 1 lulcmmef.tif lutkc.txt 10 
+kc_11 1 lulcmmef.tif lutkc.txt 11 
+kc_12 1 lulcmmef.tif lutkc.txt 12 
+Transmissivity 0 Trans.tif 
+FractionForest -1 0 
