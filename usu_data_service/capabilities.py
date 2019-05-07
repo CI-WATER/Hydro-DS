@@ -54,7 +54,6 @@ def get_capabilites():
     capabilities.append(_get_capability_dict(service_name='projectandcliprastertoreference',
                                              description='project and clip a raster based on a reference raster'))
 
-
     capabilities.append(_get_capability_dict(service_name='projectresamplerasterutm',
                                              description='project and resample a raster based on UTM zone and cell size'))
 
@@ -129,6 +128,49 @@ def get_capabilites():
 
     capabilities.append(_get_capability_dict(service_name='runuebmodel',
                                              description="Run ueb model using HydroShare resource"))
+
+
+### TOPNET
+    capabilities.append(_get_capability_dict(service_name='downloadstreamflow',
+                                             description="Download USGS Streamflow"))
+
+    capabilities.append(_get_capability_dict(service_name='watersheddelineation',
+                                             description="Delineate Watershed with P-D"))
+
+    capabilities.append(_get_capability_dict(service_name='downloadclimatedata',
+                                             description="Download Daymet Data"))
+
+    capabilities.append(_get_capability_dict(service_name='downloadsoildata',
+                                             description="Download SSURGO Soil Data"))
+
+    capabilities.append(_get_capability_dict(service_name='reachlink',
+                                            description="Create Reach Links"))
+
+    capabilities.append(_get_capability_dict(service_name='dist_wetness_distribution',
+                                             description="Get Distributed Wetness Index"))
+
+    capabilities.append(_get_capability_dict(service_name='createlatlonfromxy',
+                                             description="Create Latitude/Longitude from x/y Coordinates"))
+
+    capabilities.append(_get_capability_dict(service_name='dist_wetness_distribution',
+                                             description="Get Distributed Wetness Index"))
+
+    capabilities.append(_get_capability_dict(service_name='createparmfile',
+                                             description="Generate TOPNET Parameters"))
+
+    capabilities.append(_get_capability_dict(service_name='createrainweight',
+                                             description="Create Rain Weights"))
+
+    capabilities.append(_get_capability_dict(service_name='createbasinparameter',
+                                             description="Create Basin Parameters"))
+
+    # 5.1.19 need to create this becasue it is in the python client
+    # 'getlanduselandcoverdata':
+    
+    # 5.1.19 this doesn't have a python client so removed (for now?)
+    # 'getprismrainfall':
+
+
     return capabilities
 
 
@@ -183,6 +225,26 @@ def get_service_info(service_name):
     services_info_dict['deletefile'] = _get_deletefile_info
     services_info_dict['zipfiles'] = _get_zipfiles_info
     services_info_dict['runuebmodel'] = _get_runuebmodel_info
+
+##TOPNET
+    services_info_dict['downloadstreamflow'] = _get_downloadstreamflow_info                                  
+    services_info_dict['watersheddelineation'] = _get_watersheddelineation_info                                           
+    services_info_dict['downloadclimatedata'] = _get_downloadclimatedata_info                                          
+    services_info_dict['downloadsoildata'] = _get_downloadsoildata_info                                        
+    services_info_dict['reachlink'] = _get_reachlink_info                                       
+    services_info_dict['dist_wetness_distribution'] = _get_dist_wetness_distribution_info                                         
+    services_info_dict['createlatlonfromxy'] = _get_createlatlonfromxy_info
+    services_info_dict['dist_wetness_distribution'] = _get_dist_wetness_distribution_info
+    services_info_dict['createparmfile'] = _get_createparmfile_info
+    services_info_dict['createrainweight'] = _get_createrainweight_info
+    services_info_dict['createbasinparameter'] = _get_createbasinparameter_info
+    
+    # 5.1.19 need to create this becasue it is in the python client
+    #services_info_dict['getlanduselandcoverdata'] = _get_getlanduselandcoverdata_info
+    
+    # 5.1.19 this doesn't have a python client so removed (for now?)
+    #services_info_dict['getprismrainfall'] = _get_getprismrainfall_info
+
 
     if service_name in services_info_dict:
         return services_info_dict[service_name]()
@@ -1491,3 +1553,145 @@ def _get_runuebmodel_info():
                             },
                            _get_json_response_format(data_dict={})]
             }
+
+
+#TOPNET
+
+def _get_downloadstreamflow_info():
+    service_name = 'downloadstreamflow'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                _get_param_dict(name='USGS_gage',
+                                                description='USGS Gage ID',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='Start_Year',
+                                                description='Start Year',
+                                                required=True,
+                                                type='integer'),
+
+                                _get_param_dict(name='End_Year',
+                                                description='End Year',
+                                                required=True,
+                                                type='integer'),
+
+                                _get_param_dict(name='output_streamflow',
+                                                description='Name of output streamflow file',
+                                                required=True,
+                                                type='string'),
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def get_watersheddelineation_info():
+    service_name = 'watersheddelineation'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+#**                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_downloadclimatedata_info():
+    service_name = 'downloadstreamflow'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_downloadsoildata_info():
+    service_name = 'downloadsoildata'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_reachlink_info():
+    service_name = 'reachlink'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_dist_wetness_distribution_info():
+    service_name = 'dist_wetness_distribution'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_createlatlonfromxy_info():
+    service_name = 'createlatlonfromxy'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+
+def _get_dist_wetness_distribution_info():
+    service_name = 'dist_wetness_distribution'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+
+def _get_createparmfile_info():
+    service_name = 'createparmfile'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_createrainweight_info():
+    service_name = 'createrainweight'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+def _get_createbasinparameter_info():
+    service_name = 'createbasinparameter'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                # **                                'fill parameters here'
+                            ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
+
+# 5.1.19 need to create this becasue it is in the python client
+# def _get_getlanduselandcoverdata_info():
+
+# 5.1.19 this doesn't have a python client so removed (for now?)
+# def _get_getprismrainfall_info():
+
+
+

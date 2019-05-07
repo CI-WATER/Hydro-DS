@@ -402,6 +402,21 @@ funcs = {
                    'validator': ConvertNetCDFUnitsRequestValidator
                 },
 
+
+# run ueb model with HydroShare resource
+          'runuebmodel':
+                {
+                   'function_to_execute': run_ueb_model,
+                   'file_inputs': [],
+                   'file_outputs': [],
+                   'user_inputs': ['resource_id', 'hs_username', 'hs_password', 'hs_client_id','hs_client_secret',
+                                   'token'],
+                   'user_file_inputs': [],
+                   'validator': RunUebModelValidator
+                },
+
+
+#TopNet Services
           # sample TOPNET service testing
           'downloadstreamflow':
                 {
@@ -413,20 +428,121 @@ funcs = {
                    'validator': DownloadStreamflowRequestValidator
                 },
 
-          # run ueb model with HydroShare resource
-          'runuebmodel':
+          'watersheddelineation':
                 {
-                   'function_to_execute': run_ueb_model,
+                   'function_to_execute': CommonLib.watershed_delineation,
                    'file_inputs': [],
-                   'file_outputs': [],
-                   'user_inputs': ['resource_id', 'hs_username', 'hs_password', 'hs_client_id','hs_client_secret',
-                                   'token'],
-                   'user_file_inputs': [],
-                   'validator': RunUebModelValidator
-                }
+                   'file_outputs': [{'output_pointoutletshapefile':'moved_outlets.shp','output_watershedfile': 'Delineated_Watershed.tif','output_treefile':'Stream_tree.txt','output_coordfile': 'Stream_coord.txt','output_streamnetfile':'Streamnet.shp','output_slopareafile':'SlopeAreaRatio.tif','output_distancefile':'DistanceStream.tif'}],
+                   'user_inputs': ['Src_threshold','Min_threshold','Max_threshold','Number_threshold'],
+                   'user_file_inputs': ['DEM_Raster','Outlet_shapefile'],
+                   'validator': WatershedDelineationdataRequestValidator
+                },
+
+          'downloadclimatedata':
+                {
+                   'function_to_execute': CommonLib.daymet_download,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_rainfile': 'rain.dat','output_temperaturefile': 'tmaxtmintdew.dat','output_cliparfile':'clipar.dat','output_gagefile':'rain_gage.shp'}],
+                   'user_inputs': ['Start_Year', 'End_Year'],
+                   'user_file_inputs': ['Watershed_Raster'],
+                   'validator': DownloadClimatedataRequestValidator
+                },
+
+          'downloadsoildata':
+                {
+                   'function_to_execute': CommonLib.download_Soil_Data,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_f_file':'f.tif','output_k_file':'ko.tif','output_dth1_file': 'dth1.tif','output_dth2_file':'dth2.tif','output_psif_file':'psif.tif','output_sd_file': 'sd.tif','output_tran_file':'trans.tif'}],
+                   'user_inputs': [ ],
+                   'user_file_inputs': ['Watershed_Raster'],
+                   'validator': DownloadSoildataRequestValidator
+                },
+
+          'reachlink':
+                {
+                   'function_to_execute': CommonLib.REACH_LINK,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_reachfile':'rchlink.txt','output_nodefile': 'nodelinks.txt','output_reachareafile': 'rchareas.txt','output_rchpropertiesfile': 'rchproperties.txt'}],
+                   'user_inputs': [],
+                   'user_file_inputs': ['DEM_Raster','Watershed_Raster','treefile','coordfile'],
+                   'validator': ReachLinkdataRequestValidator
+                },
+
+          'dist_wetness_distribution':
+                {
+                   'function_to_execute': CommonLib.DISTANCE_DISTRIBUTION,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_distributionfile':'distribution.txt' }],
+                   'user_inputs': [],
+                   'user_file_inputs': ['Watershed_Raster','SaR_Raster','Dist_Raster'],
+                   'validator': dist_wetness_distributiondataRequestValidator
+                },
+
+          'createlatlonfromxy':
+                {
+                   'function_to_execute': CommonLib.create_latlonfromxy,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_latlonfromxyfile':'latlongfromxy.txt' }],
+                   'user_inputs': [],
+                   'user_file_inputs': ['Watershed_Raster'],
+                   'validator': createlatlonfromxydataRequestValidator
+                },
+
+          'createparmfile':
+                {
+                   'function_to_execute': CommonLib.Create_Parspcfile,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_parspcfile':'parspc.txt' }],
+                   'user_inputs': [],
+                   'user_file_inputs': ['Watershed_Raster'],
+                   'validator': createparmfiledataRequestValidator
+                },
+
+          'createrainweight':
+                {
+                   'function_to_execute': CommonLib.Create_rain_weight,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_rainweightfile':'rainweights.txt' }],
+                   'user_inputs': [],
+                   'user_file_inputs': ['Watershed_Raster','Rain_gauge_shapefile','annual_rainfile','nodelink_file'],
+                   'validator': createrainweightdataRequestValidator
+                },
+
+          'createbasinparameter':
+                {
+                   'function_to_execute': CommonLib.BASIN_PARAM,
+                   'file_inputs': [],
+                   'file_outputs': [{'output_basinfile':'basinpars.txt' }],
+                   'user_inputs': [],
+                   'user_file_inputs': ['DEM_Raster','f_raster','k_raster','dth1_raster','dth2_raster','sd_raster','psif_raster','tran_raster','lulc_raster','lutlc','lutkc', 'Watershed_Raster','parameter_specficationfile','nodelinksfile'],
+                   'validator': createbasinparameterdataRequestValidator
+                },
+
+#5.1.19 need to create this becasue it is in the python client
+          # 'getlanduselandcoverdata':
+          #       {
+          #           'function_to_execute': CommonLib.getLULCdata,
+          #           'file_inputs': [],
+          #           'file_outputs': [{}],
+          #           'user_inputs': [],
+          #           'user_file_inputs': [],
+          #           'validator': getlanduselandcoverdatadataRequestValidator
+          #       },
+
+
+# 5.1.19 this doesn't have a python client so removed (for now?)
+          # 'getprismrainfall':
+          #       {
+          #           'function_to_execute': CommonLib.getprismdata,
+          #           'file_inputs': [],
+          #           'file_outputs': [{'output_raster': 'annrain.tif'}],
+          #           'user_inputs': [],
+          #           'user_file_inputs': ['Watershed_Raster'],
+          #           'validator': getprismrainfalldataRequestValidator
+          #       },
+
 
         }
-
 
 
 class RunService(APIView):
