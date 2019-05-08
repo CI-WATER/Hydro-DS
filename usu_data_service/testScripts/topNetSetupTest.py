@@ -4,7 +4,7 @@ from hydrods_python_client_unified import HydroDS
 import settings
 from datetime import datetime, timedelta
 """*********** Input settings for watershed of interest *****************"""
-workingDir = "G:/workDir/HydroDSTest/" #"/Projects/rdhmUEB/green2009/"
+workingDir = "/workDir/HydroDSTest/"
 
 # Green River near Daniel at Warren Bridge
 #leftX, topY, rightX, bottomY =  -110.415, 43.593, -109.492, 42.871
@@ -22,8 +22,8 @@ lat_outlet, lon_outlet = 41.7436,  -111.7838        #Logan
 epsgCode = 26912        #4326     #    #26912                 #26912 utm 12
 dx,dy  = 30, 30  #  Grid cell sizes (m) for reprojection
 # Set parameters for watershed delineation
-streamThreshold = 1000
-watershedName = 'GreenT'
+streamThreshold = 300
+watershedName = 'LoganT'
 # Cell spacing for subsampled UEB model (m)
 dxRes, dyRes = 800, 800
 #### model start and end dates
@@ -44,8 +44,7 @@ for item in MyFiles:
 ## Test TOPNET
 
 demUrl = 'http://hydro-ds.uwrl.usu.edu/files/data/user_5/GreenDEM84.tif'
-demRes = 'http://hydro-ds.uwrl.usu.edu/files/data/user_5/GreenDEM800m.tif'
-outShp = 'http://hydro-ds.uwrl.usu.edu/files/data/user_5/GreenmovOutlet.zip'
+outShpGrn = 'http://hydro-ds.uwrl.usu.edu/files/data/user_5/GreenmovOutlet.zip'
 
 demRes = 'http://hydro-ds.uwrl.usu.edu/files/data/user_5/JLoganProj30.tif'  #'http://hydro-ds.uwrl.usu.edu/files/data/user_5/LoganProj50.tif'
 outShp = 'http://hydro-ds.uwrl.usu.edu/files/data/user_5/JLoganmovOutlet.zip'
@@ -62,16 +61,9 @@ MyFiles = HDS.list_my_files()
 for item in MyFiles:
     print(item)
 
-#HDS.download_file(file_url_path=wsRequest['output_watershed_raster'], save_as=workingDir+"pgWS.tif")
+#stream_request = HDS.download_streamflow(usgs_gage="", start_year=2009, end_year=2010,output_streamflow="Logan0910.dat")
 
-stream_request = HDS.download_streamflow(usgs_gage="", start_year=2009, end_year=2010,output_streamflow="Logan0910.dat")
-
-HDS.download_file(file_url_path=stream_request['output_streamflow'], save_as=workingDir+"Logan0910.dat")
-
-MyFiles = HDS.list_my_files()
-for item in MyFiles:
-    print(item)
-
+#HDS.download_file(file_url_path=stream_request['output_streamflow'], save_as=workingDir+"Logan0910.dat")
 
 print('Done')
 
