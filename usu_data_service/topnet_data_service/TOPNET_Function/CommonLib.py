@@ -58,10 +58,8 @@ def watershed_delineation(DEM_Raster,Outlet_shapefile,Src_threshold,Min_threshol
     #if retDictionary['success']=="False":
         #return retDictionary
 
-
-
     cmdstring=PITREMOVE(MPI_dir,np,TauDEM_dir, In_Out_dir,Input_Dem)
-    print(cmdstring)
+    #print(cmdstring)
     retDictionary=call_subprocess(cmdstring,'pitremove')
     if retDictionary['success'] == "False":
         return retDictionary
@@ -74,56 +72,90 @@ def watershed_delineation(DEM_Raster,Outlet_shapefile,Src_threshold,Min_threshol
     retDictionary=call_subprocess(THRESHOLD(MPI_dir,np,TauDEM_dir,In_Out_dir,Input_Dem,Src_threshold),'threshold')
     if retDictionary['success'] == "False":
         return retDictionary
-    retDictionary=call_subprocess(MOVEOUTLETTOSTREAMS(MPI_dir,np,TauDEM_dir,In_Out_dir,Input_Dem,Outlet,output_pointoutletshapefile),'moveoutlet')
+
+    dummyShp = "dumyShp.shp"
+    retDictionary=call_subprocess(MOVEOUTLETTOSTREAMS(MPI_dir,np,TauDEM_dir,In_Out_dir,Input_Dem,Outlet,dummyShp),'moveoutlet')
     if retDictionary['success'] == "False":
         return retDictionary
     #
-    # driverName = "ESRI Shapefile"
-    # driver = ogr.GetDriverByName(driverName)
-    # dataset = driver.Open(Outlet_shapefile)
-    # layer = dataset.GetLayer()
-    # srs = layer.GetSpatialRef()
-    # baseName = os.path.splitext(output_pointoutletshapefile)[0]
-    # projFile = baseName+".prj"
-    # #srsString = "+proj=utm +zone="+str(utmZone)+" +ellps=GRS80 +datum=NAD83 +units=m"
-    # #srs = osr.SpatialReference()
-    # #srs.ImportFromEPSG(epsgCode)
-    # #srs.ImportFromProj4(srsString)
+    # Add projection to moved outlet ---TauDEM excludes the projection from moved outlet; check
+    # project_Shapefile_UTM_NAD83("outletMoved.shp", output_Outlet_shpFile, utmZone)
+    baseName = os.path.splitext(output_pointoutletshapefile)[0]
+    projFile = "dumyShp.prj"  #baseName + ".prj"
+    # # srsString = "+proj=utm +zone="+str(utmZone)+" +ellps=GRS80 +datum=NAD83 +units=m"
+    # srs = osr.SpatialReference()
+    # srs.ImportFromEPSG(epsg_code)
+    # # srs.ImportFromEPSG(4326)
+    # # srs.ImportFromProj4(srsString)
     # srs.MorphFromESRI()
     # file = open(projFile, "w")
     # file.write(srs.ExportToWkt())
     # file.close()
+    baseNameSource = os.path.splitext(Outlet_shapefile)[0]
+    projFileSource = baseNameSource + ".prj"
+    retDictionary = call_subprocess("cp "+projFileSource+" "+projFile, 'copy projection')
+    if retDictionary['success'] == "False":
+        return retDictionary
 
     ##add ID field to move outlets to stream file
     # Read in our existing shapefile
-    r = shapefile.Reader(output_pointoutletshapefile)
-   # Create a new shapefile in memory
-    w = shapefile.Writer()
-   # Copy over the existing fields
+
+    r = shapefile.Reader(dummyShp)
+    # Create a new shapefile in memory
+    w = shapefile.Writer(output_pointoutletshapefile) #(r.shapeType)
+    # Copy over the existing dbf fields
     w.fields = list(r.fields)
-   #  Add our new field using the pyshp API
+    # Copy over the existing dbf records
+    ##w.records.extend(r.records())
+    # Copy over the existing polygons
+    ##w.shapes(r.shapes())
+    #  Add our new field using the pyshp API
     w.field("ID", "C", "40")
 
-   # We'll create a counter in this example
-   # to give us sample data to add to the records
-   #  so we know the field is working correctly.
     i=1
+    # Loop through each record, add a column.
+    for shaperec in r.iterShapeRecords():
+        rec = shaperec.record  #rec = list(shaperec.record)
+        rec.append(i)
+        i+=1
+        w.record(*rec)
+        w.shape(shaperec.shape)
 
-   # Loop through each record, add a column.  We'll
-   # insert our sample data but you could also just
-   # insert a blank string or NULL DATA number
-   # as a place holder
-    for rec in r.records():
-       rec.append(i)
-       i+=1
-       # Add the modified record to the new shapefile
-       w.records.append(rec)
+    w.close()  #w.save(output_pointoutletshapefile)
 
-   # Copy over the geometry without any changes
-    w._shapes.extend(r.shapes())
-    w.save(output_pointoutletshapefile)
+    # Save as a new shapefile
 
-   # Save as a new shapefile
+##5.7.19 commented out
+   #  r = shapefile.Reader(output_pointoutletshapefile)
+   # # Create a new shapefile in memory
+   #  dummpyShp = "dumyShp.shp"
+   #  w = shapefile.Writer(dummpyShp)
+   #  #w = shapefile.Writer()
+   # # Copy over the existing fields
+   #  w.fields = list(r.fields)
+   # #  Add our new field using the pyshp API
+   #  w.field("ID", "C", "40")
+   #
+   # # We'll create a counter in this example
+   # # to give us sample data to add to the records
+   # #  so we know the field is working correctly.
+   #  i=1
+   #
+   # # Loop through each record, add a column.  We'll
+   # # insert our sample data but you could also just
+   # # insert a blank string or NULL DATA number
+   # # as a place holder
+   #  for rec in r.records():
+   #     rec.append(i)
+   #     i+=1
+   #     # Add the modified record to the new shapefile
+   #     w.records.append(rec)
+   #
+   #  # Copy over the geometry without any changes
+   #  w._shapes.extend(r.shapes())
+   #  w.save(output_pointoutletshapefile)
+   #
+   # # Save as a new shapefile
 
 
     retDictionary=call_subprocess(PEUKERDOUGLAS(MPI_dir,np,TauDEM_dir,In_Out_dir,Input_Dem),'peuker')
