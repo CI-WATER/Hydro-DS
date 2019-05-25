@@ -1648,6 +1648,60 @@ class HydroDS(object):
         return self._process_dataservice_response(response, save_as)
 
 
+    def adjust_for_elevation_Temperature(self, input_netcdf, output_netcdf, varName, input_raster, target_raster,
+                                     time_var_name='time', baseDateTime='1980/01/01 0', timeUnits='days', save_as=None):
+        """
+        ajusts temerature values with lapse rate based on elevaton
+        :param input_netcdf: input
+        :param output_netcdf: output
+        :param varName: name of variable of interest
+        :param input_raster: raster containing the DEM values used when generating the original climate data (in input_netcdf)
+        :param target_raster: temperature values adjusted to this DEM
+        :return: a dictionary with key 'output_netcdf' and value of url path for the output netcdf file
+
+        :raises: HydroDSArgumentException: one or more argument failed validation at client side
+        :raises: HydroDSBadRequestException: one or more argument failed validation on the server side
+        :raises: HydroDSNotAuthenticatedException: provided user account failed validation
+        :raises: HydroDSNotAuthorizedException: user making this request is not authorized to do so
+        :raises: HydroDSNotFoundException: specified netcdf input file doesn't exist on HydroDS server
+
+        Example usage:
+            hds = HydroDS(username=your_username, password=your_password)
+            response_data = hds.adjust_for_elevation_Temperature(input_netcdf=provide_input_netcdf_static_file_name_or_url_file_path_here,
+                                              input_raster=ref_input_raster_url,
+                                              target_raster=ref_input_raster_url,
+                                              varName = "Ta",
+                                              output_netcdf='subset_netcdf_to_spawn.nc')
+
+            output_subset_netcdf_url = response_data['output_netcdf']
+
+            # print the url path for the generated netcdf file
+            print(output_subset_netcdf_url)
+        """
+
+        DATE_FORMAT = "%Y/%m/%d %H"
+        if save_as:
+            self._validate_file_save_as(save_as)
+
+        try:
+            start_date_value = datetime.datetime.strptime(baseDateTime, DATE_FORMAT)
+        except ValueError:
+            raise HydroDSArgumentException("baseDateTime must be a string in the format of 'yyyy/mm/dd/ H'")
+
+
+        if not self._is_file_name_valid(output_netcdf, ext='.nc'):
+            raise HydroDSArgumentException('{file_name} is not a valid NetCDF file '
+                                           'name.'.format(file_name=output_netcdf))
+
+        url = self._get_dataservice_specific_url('adjustforelevationtemperature')
+        payload = {'output_netcdf': output_netcdf, 'input_netcdf': input_netcdf, 'varName': varName, 'input_raster': input_raster,
+                   'target_raster': target_raster, 'time_var_name': time_var_name, 'baseDateTime': baseDateTime, 'timeUnits': timeUnits
+                  }
+
+        response = self._make_data_service_request(url, params=payload)
+        return self._process_dataservice_response(response, save_as)
+
+
     def project_netcdf(self, input_netcdf_url_path, utm_zone, variable_name, output_netcdf, save_as=None):
         """
         Projects a netcdf file
