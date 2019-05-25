@@ -26,6 +26,7 @@ Web based services for hydrological data processing.
 - Generate canopy variable specific data in NetCDF format
 - Convert NetCDF data units
 - Rename NetCDF data variable
+- Adjust temperature for elevation (downscaling)
 - Create HydroShare resource
 - List available data sources
 
