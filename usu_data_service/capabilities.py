@@ -1638,7 +1638,7 @@ def _get_downloadstreamflow_info():
                            _get_json_response_format(data_dict={})]
             }
 
-def get_watersheddelineation_info():
+def _get_watersheddelineation_info():
     service_name = 'watersheddelineation'
     return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
                             'parameters': [
