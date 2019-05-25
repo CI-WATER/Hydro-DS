@@ -288,6 +288,18 @@ class ConcatenateNetCDFRequestValidator(serializers.Serializer):
     inout_timeName = serializers.CharField(required=True)
 
 
+### 5.18.19 temp downscale
+class AdjustForElevationTemperatureRequestValidator(InputRasterURLorStaticRequestValidator, InputNetCDFURLorStaticRequestValidator):
+    input_raster = serializers.URLField(required=True)
+    target_raster = serializers.CharField(required=True)
+    input_netcdf = serializers.CharField(required=True)
+    output_netcdf = serializers.CharField(required=True)
+    varName = serializers.CharField(required=True)
+    time_var_name = serializers.CharField(required=True)
+    timeUnits = serializers.CharField(required=False)
+    baseDateTime =  serializers.CharField(required=True)
+
+
 class ProjectSubsetResampleNetCDFRequestValidator(ResampleNetCDFRequestValidator):
     pass
 

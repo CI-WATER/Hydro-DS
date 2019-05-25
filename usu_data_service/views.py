@@ -12,6 +12,7 @@ from usu_data_service.servicefunctions.terrainFunctions import *
 from usu_data_service.servicefunctions.watershedFunctions import *
 from usu_data_service.servicefunctions.netcdfFunctions import *
 from usu_data_service.servicefunctions.canopyFunctions import *
+from usu_data_service.servicefunctions.climateFunctions2 import *
 from usu_data_service.servicefunctions.static_data import *
 from usu_data_service.topnet_data_service.TOPNET_Function import CommonLib
 from usu_data_service.serializers import *
@@ -27,6 +28,17 @@ WESTERN_US_DEM = os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource/nedWesternUS.
 logger = logging.getLogger(__name__)
 
 funcs = {
+
+          #5.18.19 temp downscale
+          'adjustforelevationtemperature':
+                {
+                    'function_to_execute': adjust_for_elevation_Temperature,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'adjustTempElev.nc'}],
+                    'user_file_inputs': ['input_netcdf', 'input_raster', 'target_raster'],
+                    'user_inputs': ['varName', 'time_var_name',  'baseDateTime', 'timeUnits'],
+                    'validator': AdjustForElevationTemperatureRequestValidator
+                },
 
           'computeaverageoftwonetcdfvars':
                 {

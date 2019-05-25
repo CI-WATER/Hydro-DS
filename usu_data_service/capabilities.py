@@ -129,6 +129,9 @@ def get_capabilites():
     capabilities.append(_get_capability_dict(service_name='runuebmodel',
                                              description="Run ueb model using HydroShare resource"))
 
+    capabilities.append(_get_capability_dict(service_name='adjustforelevationtemperature',
+                                             description="Adjust temerature for elevation"))
+
 
 ### TOPNET
     capabilities.append(_get_capability_dict(service_name='downloadstreamflow',
@@ -225,6 +228,8 @@ def get_service_info(service_name):
     services_info_dict['deletefile'] = _get_deletefile_info
     services_info_dict['zipfiles'] = _get_zipfiles_info
     services_info_dict['runuebmodel'] = _get_runuebmodel_info
+    services_info_dict['adjustforelevationtemperature'] = _get_adjustforelevationtemperature_info
+
 
 ##TOPNET
     services_info_dict['downloadstreamflow'] = _get_downloadstreamflow_info                                  
@@ -1554,6 +1559,54 @@ def _get_runuebmodel_info():
                            _get_json_response_format(data_dict={})]
             }
 
+
+def _get_adjustforelevationtemperature_info():
+    service_name = 'adjustforelevationtemperature'
+    return {service_name: [{'end_point': _get_end_point(service_name), 'http_method': 'GET',
+                            'parameters': [
+                                _get_param_dict(name='input_netcdf',
+                                                description='Input netCDF for the temperature file',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='output_netcdf',
+                                                description='Output netCDF for temperature with adjusted for elevation',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='input_raster',
+                                                description='Elevaton raster corresponding to the input netCDF',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='target_raster',
+                                                description='Target elevation raster to adjust temperature to',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='varName',
+                                                description='Variable name (temperature) in netCDF file',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='time_var_name',
+                                                description='Time variable name in netCDF file',
+                                                required=True,
+                                                type='string'),
+
+                                _get_param_dict(name='timeUnits',
+                                                description='Time units: daily or hourly',
+                                                required=False,
+                                                type='string'),
+
+                                _get_param_dict(name='baseDateTime',
+                                                description='The start of time coordinate in netCDF (hours/days since...)',
+                                                required=False,
+                                                type='string'),
+                           ]
+                            },
+                           _get_json_response_format(data_dict={})]
+            }
 
 #TOPNET
 
