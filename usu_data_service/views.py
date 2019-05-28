@@ -40,6 +40,17 @@ funcs = {
                     'validator': AdjustForElevationTemperatureRequestValidator
                 },
 
+          # 5.28.19 temp, prec, vp downscale
+          'adjustforelevationforcing':
+                {
+                    'function_to_execute': adjust_for_elevation_Forcing,
+                    'file_inputs': [],
+                    'file_outputs': [{'output_netcdf': 'adjustTempElev.nc'}],
+                    'user_file_inputs': ['input_netcdf', 'input_raster', 'target_raster'],
+                    'user_inputs': ['varName', 'time_var_name', 'baseDateTime', 'timeUnits', 'varCode'],
+                    'validator': AdjustForElevationForcingRequestValidator
+                },
+
           'computeaverageoftwonetcdfvars':
                 {
                     'function_to_execute': compute_average_of_two_netCDF_vars,
