@@ -20,6 +20,7 @@ import glob
 import string
 import shutil
 
+from usu_data_service.utils import *
 from .utils import *
 
 def project_raster_UTM_NAD83(input_raster, output_raster, utmZone):
@@ -333,39 +334,54 @@ def subset_USGS_NED_DEM(output_raster, xmin, ymax, xmax, ymin):
     then it subsets the DEM projects to NAD83 UTM, and re-samples/re-grids.
     parameters are left, top, right, bottom (lon lat coordinates) in decimal degrees (GCS NAD83)
     """
+    cur_work_dir = os.getcwd()
+    working_dir = generate_uuid_file_path()
+    os.chdir(working_dir)
+
     serviceString = "wget ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/NED/1/IMG/"
     latTop = int(math.ceil(ymax))
-    latBottom = int(math.ceil(ymin))
+    latBottom = int(math.floor(ymin))
     lonLeft =  -1*(int(math.floor(xmin)))
-    lonRight = -1*(int(math.floor(xmax)))
+    lonRight = -1*(int(math.ceil(xmax)))
     #check time taken by the following loop
-    for lat in range(latBottom, latTop+1):
-        for lon in range(lonRight, lonLeft+1):
+    counter = 1
+    imageList = " "
+    for lat in range(latTop, latBottom, -1):
+        for lon in range(lonLeft,lonRight, -1):
             if (lon < 100):
                 lonStr = "0"+str(lon)
             else:
                 lonStr = str(lon)
-            zipFile = "n"+str(lat)+"w"+lonStr+".zip"
-            cmdString = serviceString+zipFile
+            zipFile = "USGS_NED_1_n"+str(lat)+"w"+lonStr+"_IMG.zip"
+            cmdString = serviceString+zipFile   + " -O " + working_dir + "/" + zipFile
             retDictionary = call_subprocess(cmdString, "download USGS DEM using web services")
             if retDictionary['success'] == "False":
                 return retDictionary
             #unzip file
-            cmdString = "7z e "+ zipFile+ " *.img -r -y"
+            #cmdString = "7z e "+ zipFile+ " *.img -r -y"
+            cmdString = "unzip -oq " + working_dir +"/" + zipFile    #
             retDictionary = call_subprocess(cmdString, "Extract DEM img from Zip file")
             if retDictionary['success'] == "False":
                 return retDictionary
-    #add to mosaic nedSub temporary file
+            imageList = imageList + "USGS_NED_1_n"+str(lat)+"w"+lonStr+"_IMG.img "
 
-    cmdString = "gdalwarp -of GTiff -overwrite *.img nedsubTempMosaic.tif"
+    # add to mosaic nedSub temporary file
+    cmdString = "gdalwarp -of GTiff -overwrite " + imageList + " nedsubTempMosaic.tif"
     retDictionary = call_subprocess(cmdString, "Mosaic images")
     if retDictionary['success'] == "False":
         return retDictionary
 
+    os.chdir(cur_work_dir)
     #subset
     cmdString = "gdal_translate"+" "+"-projwin"+" "+str(xmin)+" "+str(ymax)+" "\
-               +str(xmax)+" "+str(ymin)+" nedsubTempMosaic.tif "+output_raster
-    return call_subprocess(cmdString, "subset USGS DEM")
+               +str(xmax)+" "+str(ymin) + " " + working_dir+"/nedsubTempMosaic.tif "+output_raster
+    retDictionary = call_subprocess(cmdString, "subset USGS DEM")
+    if retDictionary['success'] == "False":
+        return retDictionary
+
+    delete_working_uuid_directory(working_dir)
+    return retDictionary
+
 
 
 def download_USGSNED_subset_resample_and_Project(output_dir, output_raster, xmin, ymax, xmax, ymin, dx, dy, resample='near'):
