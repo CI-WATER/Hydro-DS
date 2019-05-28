@@ -41,15 +41,16 @@ MyFiles = HDS.list_my_files()
 for item in MyFiles:
     print(item)
 
-## Test TOPNET
-
 input_netcdf='http://hydro-ds.uwrl.usu.edu/files/data/user_5/Logantmax0.nc'
 input_raster='http://hydro-ds.uwrl.usu.edu/files/data/user_5/LoganDaymetDEM.tif'
 target_raster='http://hydro-ds.uwrl.usu.edu/files/data/user_5/LoganNEDDEM.tif'
 
+#wsRequest = HDS.adjust_for_elevation_Temperature(input_netcdf=input_netcdf,output_netcdf='LogantmaxDownscaled0.nc',varName='tmax',
+#                                                  input_raster=input_raster, target_raster=target_raster)
 
-wsRequest = HDS.adjust_for_elevation_Temperature(input_netcdf=input_netcdf,output_netcdf='LogantmaxDownscaled0.nc',varName='tmax',
-                                                 input_raster=input_raster, target_raster=target_raster)
+#using general function for temp, prec, vp
+wsRequest = HDS.adjust_for_elevation_Forcing(input_netcdf=input_netcdf,output_netcdf='LogantmaxDownscaled00.nc',varName='tmax',
+                                                  input_raster=input_raster, target_raster=target_raster, varCode='temp')
 
 MyFiles = HDS.list_my_files()
 for item in MyFiles:
