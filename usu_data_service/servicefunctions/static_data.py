@@ -48,6 +48,11 @@ def get_static_data_file_path(file_name):
         return os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource', 'nedWesternUS.tif')
     elif file_name == 'nlcd2011CONUS.tif':
         return os.path.join(STATIC_DATA_ROOT_PATH, 'nlcd2011CONUS', 'nlcd2011CONUS.tif')
+    #daymet and nldas dem
+    elif file_name == 'daymetdemwgs84.tif':
+        return os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource', 'daymetdemwgs84.tif')
+    elif file_name == 'nldasdemwgs84.tiff':
+        return os.path.join(STATIC_DATA_ROOT_PATH, 'subsetsource', 'nldasdemwgs84.tiff')
 
     return None
 
