@@ -560,7 +560,7 @@ class HydroDS(object):
         response = self._make_data_service_request(url=url, params=payload)
         return self._process_dataservice_response(response, save_as)
 
-    # TODO: this one not working as the HydroDS service api is not working
+    # Fixed 5.28.19 
     def subset_usgs_ned_dem(self, left, top, right, bottom, output_raster, save_as=None):
         """
         Subsets usgs ned dem and creates a new tif file with the subset data
